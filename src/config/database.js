@@ -1,7 +1,7 @@
 import { DataSource } from 'typeorm';
 import { config } from 'dotenv';
 import { User } from '../entities/auth/User.js';
-import { Product } from '../entities/products/Product.js';
+import { ProductSchema } from '../entities/products/Product.js';
 import { Category } from '../entities/products/Category.js';
 import { Order } from '../entities/orders/Order.js';
 import { OrderItem } from '../entities/orders/OrderItem.js';
@@ -23,7 +23,7 @@ export const AppDataSource = new DataSource({
   logging: process.env.NODE_ENV === 'development',
   entities: [
     User,
-    Product,
+    ProductSchema,
     Category,
     Order,
     OrderItem,
@@ -34,6 +34,7 @@ export const AppDataSource = new DataSource({
   ],
   migrations: ['src/migrations/*.js'],
   subscribers: ['src/subscribers/*.js'],
+  useUnifiedTopology: true,
 });
 
 export const initializeDatabase = async () => {
