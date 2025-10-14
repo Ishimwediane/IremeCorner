@@ -23,6 +23,11 @@ import notificationRoutes from './routes/notifications/notificationRoutes.js';
 import reviewRoutes from './routes/reviews/reviewRoutes.js';
 import wishlistRoutes from './routes/wishlist/wishlistRoutes.js';
 import searchRoutes from './routes/search/searchRoutes.js';
+import messagingRoutes from './routes/messaging/messagingRoutes.js';
+import analyticsRoutes from './routes/analytics/analyticsRoutes.js';
+import storeRoutes from './routes/stores/storeRoutes.js';
+import promotionRoutes from './routes/promotions/promotionRoutes.js';
+import inventoryRoutes from './routes/inventory/inventoryRoutes.js';
 
 const app = express();
 
@@ -79,6 +84,11 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/search', searchRoutes);
+app.use('/api/messaging', messagingRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/stores', storeRoutes);
+app.use('/api/promotions', promotionRoutes);
+app.use('/api/inventory', inventoryRoutes);
 
 // Admin routes (placeholder for future admin functionality)
 app.get('/api/admin/dashboard', (req, res) => {

@@ -15,6 +15,12 @@ import { Payment } from '../entities/payments/Payment.js';
 import { Notification } from '../entities/notifications/Notification.js';
 import { Review } from '../entities/reviews/Review.js';
 import { WishlistItem } from '../entities/wishlist/WishlistItem.js';
+import { Message } from '../entities/messaging/Message.js';
+import { Conversation } from '../entities/messaging/Conversation.js';
+import { AnalyticsEvent } from '../entities/analytics/AnalyticsEvent.js';
+import { Store } from '../entities/stores/Store.js';
+import { Promotion } from '../entities/promotions/Promotion.js';
+import { InventoryItem } from '../entities/inventory/InventoryItem.js';
 
 config();
 
@@ -42,7 +48,13 @@ export const AppDataSource = new DataSource({
     Payment,
     Notification,
     Review,
-    WishlistItem
+    WishlistItem,
+    Message,
+    Conversation,
+    AnalyticsEvent,
+    Store,
+    Promotion,
+    InventoryItem
   ],
   migrations: ['src/migrations/*.js'],
   subscribers: ['src/subscribers/*.js'],
