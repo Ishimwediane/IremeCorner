@@ -4,8 +4,10 @@
   "type": "module",
   "main": "src/index.js",
   "scripts": {
-    "start": "node src/index-simple.js",
-    "dev": "nodemon src/index-simple.js",
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "simple": "node src/index-simple.js",
+    "dev-simple": "nodemon src/index-simple.js",
     "setup": "node setup.js",
     "build": "echo 'Build completed'",
     "test": "echo \"Error: no test specified\" && exit 1"

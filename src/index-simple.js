@@ -140,10 +140,128 @@ const enrollments = [
     courseId: 'course-1',
     studentId: 'user-1',
     studentName: 'John Doe',
+    studentRole: 'buyer',
     status: 'enrolled',
     progress: 0,
     completedLessons: [],
-    enrolledAt: new Date().toISOString()
+    completedAssignments: [],
+    quizScores: [],
+    achievements: [],
+    certificateIssued: false,
+    certificateId: null,
+    enrolledAt: new Date().toISOString(),
+    lastAccessedAt: new Date().toISOString()
+  }
+];
+
+// Mock assignments database
+const assignments = [
+  {
+    id: 'assignment-1',
+    courseId: 'course-1',
+    title: 'Create Your First Jewelry Piece',
+    description: 'Design and create a simple ring using the techniques learned',
+    instructions: 'Follow the step-by-step guide to create a basic ring',
+    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
+    maxPoints: 100,
+    type: 'project',
+    attachments: [],
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'assignment-2',
+    courseId: 'course-1',
+    title: 'Tool Safety Quiz',
+    description: 'Test your knowledge of jewelry making tools and safety',
+    instructions: 'Answer all questions correctly to pass',
+    dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days from now
+    maxPoints: 50,
+    type: 'quiz',
+    questions: [
+      {
+        id: 'q1',
+        question: 'What is the most important safety rule when using a torch?',
+        options: ['Always wear gloves', 'Work in a well-ventilated area', 'Use any fuel available', 'Work alone'],
+        correctAnswer: 1
+      },
+      {
+        id: 'q2',
+        question: 'Which tool is used for cutting metal?',
+        options: ['Hammer', 'Jeweler\'s saw', 'File', 'Pliers'],
+        correctAnswer: 1
+      }
+    ],
+    createdAt: new Date().toISOString()
+  }
+];
+
+// Mock assignment submissions database
+const assignmentSubmissions = [
+  {
+    id: 'submission-1',
+    assignmentId: 'assignment-1',
+    studentId: 'user-1',
+    studentName: 'John Doe',
+    submissionText: 'I created a simple silver ring following the instructions',
+    attachments: ['ring-photo.jpg'],
+    score: null,
+    feedback: null,
+    status: 'submitted',
+    submittedAt: new Date().toISOString()
+  }
+];
+
+// Mock achievements database
+const achievements = [
+  {
+    id: 'achievement-1',
+    name: 'First Steps',
+    description: 'Complete your first lesson',
+    icon: '🎯',
+    points: 10,
+    type: 'lesson_completion',
+    requirement: 1
+  },
+  {
+    id: 'achievement-2',
+    name: 'Dedicated Learner',
+    description: 'Complete 5 lessons',
+    icon: '📚',
+    points: 50,
+    type: 'lesson_completion',
+    requirement: 5
+  },
+  {
+    id: 'achievement-3',
+    name: 'Quiz Master',
+    description: 'Score 90% or higher on any quiz',
+    icon: '🧠',
+    points: 25,
+    type: 'quiz_score',
+    requirement: 90
+  },
+  {
+    id: 'achievement-4',
+    name: 'Course Graduate',
+    description: 'Complete an entire course',
+    icon: '🎓',
+    points: 100,
+    type: 'course_completion',
+    requirement: 1
+  }
+];
+
+// Mock certificates database
+const certificates = [
+  {
+    id: 'cert-1',
+    courseId: 'course-1',
+    studentId: 'user-1',
+    studentName: 'John Doe',
+    courseName: 'Introduction to Jewelry Making',
+    issuedAt: new Date().toISOString(),
+    certificateNumber: 'CERT-2024-001',
+    status: 'issued'
   }
 ];
 
@@ -687,11 +805,25 @@ app.get('/api/courses/:id/enrollments', authenticateToken, requireRole(['trainer
   
   const courseEnrollments = enrollments.filter(e => e.courseId === req.params.id);
   
+  // Add student details to enrollments
+  const enrollmentsWithStudents = courseEnrollments.map(enrollment => {
+    const student = users.find(u => u.id === enrollment.studentId);
+    return {
+      ...enrollment,
+      student: student ? {
+        firstName: student.firstName,
+        lastName: student.lastName,
+        email: student.email,
+        role: student.role
+      } : null
+    };
+  });
+  
   res.json({
     success: true,
     data: {
-      enrollments: courseEnrollments,
-      total: courseEnrollments.length
+      enrollments: enrollmentsWithStudents,
+      total: enrollmentsWithStudents.length
     }
   });
 });
@@ -805,7 +937,7 @@ app.delete('/api/courses/:courseId/lessons/:lessonId', authenticateToken, requir
   });
 });
 
-// Course enrollment
+// Course enrollment (Buyers, Artisans, Students can enroll)
 app.post('/api/courses/:id/enroll', authenticateToken, (req, res) => {
   const course = courses.find(c => c.id === req.params.id);
   if (!course) {
@@ -824,11 +956,20 @@ app.post('/api/courses/:id/enroll', authenticateToken, (req, res) => {
     });
   }
   
+  // Check if user is trying to enroll in their own course (trainers can't enroll in their own courses)
+  if (course.instructorId === req.user.id) {
+    return res.status(400).json({
+      success: false,
+      message: 'You cannot enroll in your own course'
+    });
+  }
+  
   const newEnrollment = {
     id: `enrollment-${Date.now()}`,
     courseId: req.params.id,
     studentId: req.user.id,
     studentName: `${req.user.firstName} ${req.user.lastName}`,
+    studentRole: req.user.role, // Track the role of the student
     status: 'enrolled',
     progress: 0,
     completedLessons: [],
@@ -856,7 +997,9 @@ app.get('/api/courses/my-enrollments', authenticateToken, (req, res) => {
         title: course.title,
         description: course.description,
         instructorName: course.instructorName,
-        thumbnail: course.thumbnail
+        thumbnail: course.thumbnail,
+        level: course.level,
+        duration: course.duration
       } : null
     };
   });
@@ -920,8 +1063,23 @@ app.put('/api/courses/enrollments/:enrollmentId/complete-lesson', authenticateTo
   
   if (!enrollment.completedLessons.includes(lessonId)) {
     enrollment.completedLessons.push(lessonId);
+    
+    // Check for achievements
+    checkAndAwardAchievements(enrollment);
+    
+    // Update progress
+    const course = courses.find(c => c.id === enrollment.courseId);
+    if (course) {
+      enrollment.progress = Math.round((enrollment.completedLessons.length / course.lessons.length) * 100);
+      
+      // Check if course is completed
+      if (enrollment.progress >= 100 && !enrollment.certificateIssued) {
+        issueCertificate(enrollment, course);
+      }
+    }
   }
   
+  enrollment.lastAccessedAt = new Date().toISOString();
   enrollment.updatedAt = new Date().toISOString();
   
   res.json({
@@ -930,6 +1088,359 @@ app.put('/api/courses/enrollments/:enrollmentId/complete-lesson', authenticateTo
     data: enrollment
   });
 });
+
+// Assignment Management (Trainer and Admin)
+app.get('/api/courses/:courseId/assignments', authenticateToken, (req, res) => {
+  const course = courses.find(c => c.id === req.params.courseId);
+  if (!course) {
+    return res.status(404).json({
+      success: false,
+      message: 'Course not found'
+    });
+  }
+  
+  // Check permissions
+  if (req.user.role === 'trainer' && course.instructorId !== req.user.id) {
+    return res.status(403).json({
+      success: false,
+      message: 'You can only view assignments for your own courses'
+    });
+  }
+  
+  const courseAssignments = assignments.filter(a => a.courseId === req.params.courseId);
+  
+  res.json({
+    success: true,
+    data: {
+      assignments: courseAssignments,
+      total: courseAssignments.length
+    }
+  });
+});
+
+app.post('/api/courses/:courseId/assignments', authenticateToken, requireRole(['trainer', 'admin']), (req, res) => {
+  const course = courses.find(c => c.id === req.params.courseId);
+  if (!course) {
+    return res.status(404).json({
+      success: false,
+      message: 'Course not found'
+    });
+  }
+  
+  // Check if trainer owns this course (unless admin)
+  if (req.user.role !== 'admin' && course.instructorId !== req.user.id) {
+    return res.status(403).json({
+      success: false,
+      message: 'You can only add assignments to your own courses'
+    });
+  }
+  
+  const { title, description, instructions, dueDate, maxPoints, type, questions } = req.body;
+  
+  const newAssignment = {
+    id: `assignment-${Date.now()}`,
+    courseId: req.params.courseId,
+    title,
+    description,
+    instructions,
+    dueDate: new Date(dueDate).toISOString(),
+    maxPoints: parseInt(maxPoints),
+    type: type || 'project',
+    questions: type === 'quiz' ? questions : null,
+    attachments: [],
+    createdAt: new Date().toISOString()
+  };
+  
+  assignments.push(newAssignment);
+  
+  res.status(201).json({
+    success: true,
+    message: 'Assignment created successfully',
+    data: newAssignment
+  });
+});
+
+// Student Assignment Submission
+app.get('/api/courses/:courseId/assignments/my-submissions', authenticateToken, (req, res) => {
+  const courseAssignments = assignments.filter(a => a.courseId === req.params.courseId);
+  const mySubmissions = assignmentSubmissions.filter(s => s.studentId === req.user.id);
+  
+  const submissionsWithAssignments = mySubmissions.map(submission => {
+    const assignment = courseAssignments.find(a => a.id === submission.assignmentId);
+    return {
+      ...submission,
+      assignment: assignment ? {
+        title: assignment.title,
+        description: assignment.description,
+        maxPoints: assignment.maxPoints,
+        dueDate: assignment.dueDate
+      } : null
+    };
+  });
+  
+  res.json({
+    success: true,
+    data: {
+      submissions: submissionsWithAssignments,
+      total: submissionsWithAssignments.length
+    }
+  });
+});
+
+app.post('/api/assignments/:assignmentId/submit', authenticateToken, (req, res) => {
+  const assignment = assignments.find(a => a.id === req.params.assignmentId);
+  if (!assignment) {
+    return res.status(404).json({
+      success: false,
+      message: 'Assignment not found'
+    });
+  }
+  
+  // Check if already submitted
+  const existingSubmission = assignmentSubmissions.find(s => 
+    s.assignmentId === req.params.assignmentId && s.studentId === req.user.id
+  );
+  
+  if (existingSubmission) {
+    return res.status(400).json({
+      success: false,
+      message: 'You have already submitted this assignment'
+    });
+  }
+  
+  const { submissionText, attachments, answers } = req.body;
+  
+  let score = null;
+  if (assignment.type === 'quiz' && answers) {
+    score = calculateQuizScore(assignment.questions, answers);
+  }
+  
+  const newSubmission = {
+    id: `submission-${Date.now()}`,
+    assignmentId: req.params.assignmentId,
+    studentId: req.user.id,
+    studentName: `${req.user.firstName} ${req.user.lastName}`,
+    submissionText,
+    attachments: attachments || [],
+    answers: answers || null,
+    score,
+    feedback: null,
+    status: 'submitted',
+    submittedAt: new Date().toISOString()
+  };
+  
+  assignmentSubmissions.push(newSubmission);
+  
+  // Check for achievements
+  if (score && score >= 90) {
+    const enrollment = enrollments.find(e => 
+      e.studentId === req.user.id && e.courseId === assignment.courseId
+    );
+    if (enrollment) {
+      checkAndAwardAchievements(enrollment);
+    }
+  }
+  
+  res.status(201).json({
+    success: true,
+    message: 'Assignment submitted successfully',
+    data: newSubmission
+  });
+});
+
+// Grade Assignment (Trainer and Admin)
+app.put('/api/assignments/:assignmentId/submissions/:submissionId/grade', authenticateToken, requireRole(['trainer', 'admin']), (req, res) => {
+  const assignment = assignments.find(a => a.id === req.params.assignmentId);
+  const submission = assignmentSubmissions.find(s => s.id === req.params.submissionId);
+  
+  if (!assignment || !submission) {
+    return res.status(404).json({
+      success: false,
+      message: 'Assignment or submission not found'
+    });
+  }
+  
+  const course = courses.find(c => c.id === assignment.courseId);
+  if (!course) {
+    return res.status(404).json({
+      success: false,
+      message: 'Course not found'
+    });
+  }
+  
+  // Check if trainer owns this course (unless admin)
+  if (req.user.role !== 'admin' && course.instructorId !== req.user.id) {
+    return res.status(403).json({
+      success: false,
+      message: 'You can only grade assignments for your own courses'
+    });
+  }
+  
+  const { score, feedback } = req.body;
+  
+  submission.score = parseInt(score);
+  submission.feedback = feedback;
+  submission.gradedAt = new Date().toISOString();
+  submission.gradedBy = req.user.id;
+  
+  res.json({
+    success: true,
+    message: 'Assignment graded successfully',
+    data: submission
+  });
+});
+
+// Get Student Progress and Achievements
+app.get('/api/courses/:courseId/progress', authenticateToken, (req, res) => {
+  const enrollment = enrollments.find(e => 
+    e.courseId === req.params.courseId && e.studentId === req.user.id
+  );
+  
+  if (!enrollment) {
+    return res.status(404).json({
+      success: false,
+      message: 'You are not enrolled in this course'
+    });
+  }
+  
+  const course = courses.find(c => c.id === req.params.courseId);
+  const courseAssignments = assignments.filter(a => a.courseId === req.params.courseId);
+  const mySubmissions = assignmentSubmissions.filter(s => s.studentId === req.user.id);
+  
+  // Calculate overall progress
+  const totalLessons = course ? course.lessons.length : 0;
+  const completedLessons = enrollment.completedLessons.length;
+  const lessonProgress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+  
+  // Calculate assignment progress
+  const totalAssignments = courseAssignments.length;
+  const completedAssignments = mySubmissions.filter(s => s.score !== null).length;
+  const assignmentProgress = totalAssignments > 0 ? Math.round((completedAssignments / totalAssignments) * 100) : 0;
+  
+  // Calculate average quiz score
+  const quizSubmissions = mySubmissions.filter(s => {
+    const assignment = courseAssignments.find(a => a.id === s.assignmentId);
+    return assignment && assignment.type === 'quiz' && s.score !== null;
+  });
+  const averageQuizScore = quizSubmissions.length > 0 
+    ? Math.round(quizSubmissions.reduce((sum, s) => sum + s.score, 0) / quizSubmissions.length)
+    : 0;
+  
+  res.json({
+    success: true,
+    data: {
+      enrollment: {
+        ...enrollment,
+        lessonProgress,
+        assignmentProgress,
+        averageQuizScore,
+        totalLessons,
+        completedLessons,
+        totalAssignments,
+        completedAssignments
+      },
+      achievements: enrollment.achievements,
+      submissions: mySubmissions,
+      certificate: enrollment.certificateIssued ? certificates.find(c => c.studentId === req.user.id && c.courseId === req.params.courseId) : null
+    }
+  });
+});
+
+// Get All Achievements
+app.get('/api/achievements', (req, res) => {
+  res.json({
+    success: true,
+    data: achievements
+  });
+});
+
+// Get Student's Achievements
+app.get('/api/achievements/my-achievements', authenticateToken, (req, res) => {
+  const userAchievements = [];
+  
+  enrollments.forEach(enrollment => {
+    if (enrollment.studentId === req.user.id) {
+      enrollment.achievements.forEach(achievementId => {
+        const achievement = achievements.find(a => a.id === achievementId);
+        if (achievement) {
+          userAchievements.push({
+            ...achievement,
+            earnedAt: enrollment.updatedAt,
+            courseId: enrollment.courseId
+          });
+        }
+      });
+    }
+  });
+  
+  res.json({
+    success: true,
+    data: {
+      achievements: userAchievements,
+      total: userAchievements.length
+    }
+  });
+});
+
+// Helper Functions
+function checkAndAwardAchievements(enrollment) {
+  const course = courses.find(c => c.id === enrollment.courseId);
+  if (!course) return;
+  
+  // Check lesson completion achievements
+  const completedLessons = enrollment.completedLessons.length;
+  
+  achievements.forEach(achievement => {
+    if (achievement.type === 'lesson_completion' && 
+        completedLessons >= achievement.requirement &&
+        !enrollment.achievements.includes(achievement.id)) {
+      enrollment.achievements.push(achievement.id);
+    }
+  });
+  
+  // Check course completion achievement
+  if (enrollment.progress >= 100) {
+    const courseCompletionAchievement = achievements.find(a => 
+      a.type === 'course_completion' && !enrollment.achievements.includes(a.id)
+    );
+    if (courseCompletionAchievement) {
+      enrollment.achievements.push(courseCompletionAchievement.id);
+    }
+  }
+}
+
+function calculateQuizScore(questions, answers) {
+  if (!questions || !answers) return 0;
+  
+  let correct = 0;
+  questions.forEach(question => {
+    if (answers[question.id] === question.correctAnswer) {
+      correct++;
+    }
+  });
+  
+  return Math.round((correct / questions.length) * 100);
+}
+
+function issueCertificate(enrollment, course) {
+  const certificateNumber = `CERT-${new Date().getFullYear()}-${certificates.length + 1}`;
+  
+  const newCertificate = {
+    id: `cert-${Date.now()}`,
+    courseId: course.id,
+    studentId: enrollment.studentId,
+    studentName: enrollment.studentName,
+    courseName: course.title,
+    issuedAt: new Date().toISOString(),
+    certificateNumber,
+    status: 'issued'
+  };
+  
+  certificates.push(newCertificate);
+  
+  enrollment.certificateIssued = true;
+  enrollment.certificateId = newCertificate.id;
+}
 app.post('/api/orders', authenticateToken, (req, res) => {
   const { items, shippingAddress, billingAddress, notes } = req.body;
   
@@ -1119,7 +1630,15 @@ app.get('/api/admin/dashboard', authenticateToken, requireRole(['admin']), (req,
   const totalRevenue = payments
     .filter(p => p.status === 'completed')
     .reduce((sum, p) => sum + p.amount, 0);
-  
+
+  // Training analytics
+  const totalEnrollments = enrollments.length;
+  const completedCourses = enrollments.filter(e => e.progress >= 100).length;
+  const certificatesIssued = certificates.length;
+  const averageCourseProgress = enrollments.length > 0 
+    ? Math.round(enrollments.reduce((sum, e) => sum + e.progress, 0) / enrollments.length)
+    : 0;
+
   res.json({
     success: true,
     message: 'Admin dashboard',
@@ -1129,7 +1648,218 @@ app.get('/api/admin/dashboard', authenticateToken, requireRole(['admin']), (req,
       totalOrders: orders.length,
       totalCourses: courses.length,
       totalRevenue: totalRevenue,
-      pendingPayments: payments.filter(p => p.status === 'pending').length
+      pendingPayments: payments.filter(p => p.status === 'pending').length,
+      // Training analytics
+      totalEnrollments,
+      completedCourses,
+      certificatesIssued,
+      averageCourseProgress,
+      totalAssignments: assignments.length,
+      totalAchievements: achievements.length
+    }
+  });
+});
+
+// Training Analytics (Admin and Trainer)
+app.get('/api/admin/training-analytics', authenticateToken, requireRole(['admin', 'trainer']), (req, res) => {
+  const userCourses = req.user.role === 'trainer' 
+    ? courses.filter(c => c.instructorId === req.user.id)
+    : courses;
+
+  const analytics = userCourses.map(course => {
+    const courseEnrollments = enrollments.filter(e => e.courseId === course.id);
+    const courseAssignments = assignments.filter(a => a.courseId === course.id);
+    const courseSubmissions = assignmentSubmissions.filter(s => 
+      courseAssignments.some(a => a.id === s.assignmentId)
+    );
+
+    const completionRate = courseEnrollments.length > 0 
+      ? Math.round((courseEnrollments.filter(e => e.progress >= 100).length / courseEnrollments.length) * 100)
+      : 0;
+
+    const averageProgress = courseEnrollments.length > 0
+      ? Math.round(courseEnrollments.reduce((sum, e) => sum + e.progress, 0) / courseEnrollments.length)
+      : 0;
+
+    const averageQuizScore = courseSubmissions.filter(s => {
+      const assignment = courseAssignments.find(a => a.id === s.assignmentId);
+      return assignment && assignment.type === 'quiz' && s.score !== null;
+    }).reduce((sum, s) => sum + s.score, 0) / Math.max(courseSubmissions.length, 1);
+
+    return {
+      courseId: course.id,
+      courseTitle: course.title,
+      totalEnrollments: courseEnrollments.length,
+      completionRate,
+      averageProgress,
+      averageQuizScore: Math.round(averageQuizScore),
+      totalAssignments: courseAssignments.length,
+      totalSubmissions: courseSubmissions.length,
+      certificatesIssued: courseEnrollments.filter(e => e.certificateIssued).length
+    };
+  });
+
+  res.json({
+    success: true,
+    data: {
+      analytics,
+      summary: {
+        totalCourses: userCourses.length,
+        totalEnrollments: enrollments.filter(e => 
+          userCourses.some(c => c.id === e.courseId)
+        ).length,
+        averageCompletionRate: analytics.length > 0 
+          ? Math.round(analytics.reduce((sum, a) => sum + a.completionRate, 0) / analytics.length)
+          : 0
+      }
+    }
+  });
+});
+
+// Student Progress Report (Trainer and Admin)
+app.get('/api/courses/:courseId/student-progress', authenticateToken, requireRole(['trainer', 'admin']), (req, res) => {
+  const course = courses.find(c => c.id === req.params.courseId);
+  if (!course) {
+    return res.status(404).json({
+      success: false,
+      message: 'Course not found'
+    });
+  }
+
+  // Check if trainer owns this course (unless admin)
+  if (req.user.role !== 'admin' && course.instructorId !== req.user.id) {
+    return res.status(403).json({
+      success: false,
+      message: 'You can only view progress for your own courses'
+    });
+  }
+
+  const courseEnrollments = enrollments.filter(e => e.courseId === req.params.courseId);
+  const courseAssignments = assignments.filter(a => a.courseId === req.params.courseId);
+
+  const studentProgress = courseEnrollments.map(enrollment => {
+    const student = users.find(u => u.id === enrollment.studentId);
+    const studentSubmissions = assignmentSubmissions.filter(s => 
+      s.studentId === enrollment.studentId && 
+      courseAssignments.some(a => a.id === s.assignmentId)
+    );
+
+    const completedAssignments = studentSubmissions.filter(s => s.score !== null).length;
+    const averageScore = studentSubmissions.filter(s => s.score !== null).length > 0
+      ? Math.round(studentSubmissions.filter(s => s.score !== null).reduce((sum, s) => sum + s.score, 0) / studentSubmissions.filter(s => s.score !== null).length)
+      : 0;
+
+    return {
+      enrollmentId: enrollment.id,
+      student: {
+        id: student.id,
+        name: `${student.firstName} ${student.lastName}`,
+        email: student.email,
+        role: student.role
+      },
+      progress: enrollment.progress,
+      completedLessons: enrollment.completedLessons.length,
+      totalLessons: course.lessons.length,
+      completedAssignments,
+      totalAssignments: courseAssignments.length,
+      averageScore,
+      achievements: enrollment.achievements.length,
+      certificateIssued: enrollment.certificateIssued,
+      lastAccessedAt: enrollment.lastAccessedAt,
+      enrolledAt: enrollment.enrolledAt
+    };
+  });
+
+  res.json({
+    success: true,
+    data: {
+      course: {
+        id: course.id,
+        title: course.title,
+        instructorName: course.instructorName
+      },
+      studentProgress,
+      summary: {
+        totalStudents: courseEnrollments.length,
+        averageProgress: courseEnrollments.length > 0
+          ? Math.round(courseEnrollments.reduce((sum, e) => sum + e.progress, 0) / courseEnrollments.length)
+          : 0,
+        completedCourses: courseEnrollments.filter(e => e.progress >= 100).length,
+        certificatesIssued: courseEnrollments.filter(e => e.certificateIssued).length
+      }
+    }
+  });
+});
+
+// Assignment Analytics (Trainer and Admin)
+app.get('/api/courses/:courseId/assignment-analytics', authenticateToken, requireRole(['trainer', 'admin']), (req, res) => {
+  const course = courses.find(c => c.id === req.params.courseId);
+  if (!course) {
+    return res.status(404).json({
+      success: false,
+      message: 'Course not found'
+    });
+  }
+
+  // Check if trainer owns this course (unless admin)
+  if (req.user.role !== 'admin' && course.instructorId !== req.user.id) {
+    return res.status(403).json({
+      success: false,
+      message: 'You can only view assignment analytics for your own courses'
+    });
+  }
+
+  const courseAssignments = assignments.filter(a => a.courseId === req.params.courseId);
+
+  const assignmentAnalytics = courseAssignments.map(assignment => {
+    const submissions = assignmentSubmissions.filter(s => s.assignmentId === assignment.id);
+    const gradedSubmissions = submissions.filter(s => s.score !== null);
+    
+    const averageScore = gradedSubmissions.length > 0
+      ? Math.round(gradedSubmissions.reduce((sum, s) => sum + s.score, 0) / gradedSubmissions.length)
+      : 0;
+
+    const submissionRate = courseAssignments.length > 0
+      ? Math.round((submissions.length / courseAssignments.length) * 100)
+      : 0;
+
+    return {
+      assignmentId: assignment.id,
+      title: assignment.title,
+      type: assignment.type,
+      maxPoints: assignment.maxPoints,
+      dueDate: assignment.dueDate,
+      totalSubmissions: submissions.length,
+      gradedSubmissions: gradedSubmissions.length,
+      averageScore,
+      submissionRate,
+      submissions: submissions.map(s => ({
+        id: s.id,
+        studentName: s.studentName,
+        score: s.score,
+        submittedAt: s.submittedAt,
+        gradedAt: s.gradedAt
+      }))
+    };
+  });
+
+  res.json({
+    success: true,
+    data: {
+      course: {
+        id: course.id,
+        title: course.title
+      },
+      assignmentAnalytics,
+      summary: {
+        totalAssignments: courseAssignments.length,
+        totalSubmissions: assignmentSubmissions.filter(s => 
+          courseAssignments.some(a => a.id === s.assignmentId)
+        ).length,
+        averageSubmissionRate: assignmentAnalytics.length > 0
+          ? Math.round(assignmentAnalytics.reduce((sum, a) => sum + a.submissionRate, 0) / assignmentAnalytics.length)
+          : 0
+      }
     }
   });
 });

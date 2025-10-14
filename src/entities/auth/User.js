@@ -4,6 +4,8 @@ import { Product } from '../products/Product.js';
 import { Order } from '../orders/Order.js';
 import { Course } from '../courses/Course.js';
 import { Enrollment } from '../courses/Enrollment.js';
+import { AssignmentSubmission } from '../courses/AssignmentSubmission.js';
+import { Certificate } from '../courses/Certificate.js';
 import { Payment } from '../payments/Payment.js';
 import { Notification } from '../notifications/Notification.js';
 
@@ -11,6 +13,7 @@ export const UserRole = {
   BUYER: 'buyer',
   ARTISAN: 'artisan',
   STUDENT: 'student',
+  TRAINER: 'trainer',
   ADMIN: 'admin',
 };
 
@@ -94,6 +97,12 @@ export class User {
 
   @OneToMany(() => Enrollment, enrollment => enrollment.student)
   enrollments;
+
+  @OneToMany(() => AssignmentSubmission, submission => submission.student)
+  assignmentSubmissions;
+
+  @OneToMany(() => Certificate, certificate => certificate.student)
+  certificates;
 
   @OneToMany(() => Payment, payment => payment.user)
   payments;

@@ -15,6 +15,9 @@ import authRoutes from './routes/auth/authRoutes.js';
 import productRoutes from './routes/products/productRoutes.js';
 import orderRoutes from './routes/orders/orderRoutes.js';
 import courseRoutes from './routes/courses/courseRoutes.js';
+import assignmentRoutes from './routes/courses/assignmentRoutes.js';
+import achievementRoutes from './routes/courses/achievementRoutes.js';
+import certificateRoutes from './routes/courses/certificateRoutes.js';
 import paymentRoutes from './routes/payments/paymentRoutes.js';
 
 const app = express();
@@ -64,6 +67,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/courses', courseRoutes);
+app.use('/api/assignments', assignmentRoutes);
+app.use('/api/achievements', achievementRoutes);
+app.use('/api/certificates', certificateRoutes);
 app.use('/api/payments', paymentRoutes);
 
 // Admin routes (placeholder for future admin functionality)

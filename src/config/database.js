@@ -7,6 +7,10 @@ import { Order } from '../entities/orders/Order.js';
 import { OrderItem } from '../entities/orders/OrderItem.js';
 import { Course } from '../entities/courses/Course.js';
 import { Enrollment } from '../entities/courses/Enrollment.js';
+import { Assignment } from '../entities/courses/Assignment.js';
+import { AssignmentSubmission } from '../entities/courses/AssignmentSubmission.js';
+import { Achievement } from '../entities/courses/Achievement.js';
+import { Certificate } from '../entities/courses/Certificate.js';
 import { Payment } from '../entities/payments/Payment.js';
 import { Notification } from '../entities/notifications/Notification.js';
 
@@ -29,6 +33,10 @@ export const AppDataSource = new DataSource({
     OrderItem,
     Course,
     Enrollment,
+    Assignment,
+    AssignmentSubmission,
+    Achievement,
+    Certificate,
     Payment,
     Notification
   ],

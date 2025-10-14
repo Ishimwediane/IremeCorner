@@ -2,6 +2,9 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 import { User } from '../auth/User.js';
 import { Category } from '../products/Category.js';
 import { Enrollment } from './Enrollment.js';
+import { Assignment } from './Assignment.js';
+import { Achievement } from './Achievement.js';
+import { Certificate } from './Certificate.js';
 
 export const CourseStatus = {
   DRAFT: 'draft',
@@ -115,6 +118,15 @@ export class Course {
 
   @OneToMany(() => Enrollment, enrollment => enrollment.course)
   courseEnrollments;
+
+  @OneToMany(() => Assignment, assignment => assignment.course)
+  assignments;
+
+  @OneToMany(() => Achievement, achievement => achievement.course)
+  achievements;
+
+  @OneToMany(() => Certificate, certificate => certificate.course)
+  certificates;
 
   // Methods
   getDiscountPercentage() {
