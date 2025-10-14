@@ -35,6 +35,14 @@ const users = [
     email: 'admin@example.com',
     password: 'admin123',
     role: 'admin'
+  },
+  {
+    id: 'user-4',
+    firstName: 'Mike',
+    lastName: 'Johnson',
+    email: 'mike@example.com',
+    password: 'password123',
+    role: 'trainer'
   }
 ];
 
@@ -71,8 +79,71 @@ const courses = [
     price: 149.99,
     level: 'beginner',
     duration: 120,
-    instructorId: 'user-2',
-    instructorName: 'Jane Smith'
+    instructorId: 'user-4',
+    instructorName: 'Mike Johnson',
+    status: 'active',
+    thumbnail: null,
+    images: [],
+    videos: [],
+    documents: [],
+    lessons: [
+      {
+        id: 'lesson-1',
+        title: 'Introduction to Tools',
+        description: 'Learn about the basic tools needed',
+        duration: 15,
+        order: 1
+      },
+      {
+        id: 'lesson-2',
+        title: 'Basic Techniques',
+        description: 'Master the fundamental techniques',
+        duration: 30,
+        order: 2
+      }
+    ],
+    enrollments: [],
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'course-2',
+    title: 'Advanced Pottery Techniques',
+    description: 'Master advanced pottery and ceramic techniques',
+    price: 199.99,
+    level: 'advanced',
+    duration: 180,
+    instructorId: 'user-4',
+    instructorName: 'Mike Johnson',
+    status: 'active',
+    thumbnail: null,
+    images: [],
+    videos: [],
+    documents: [],
+    lessons: [
+      {
+        id: 'lesson-3',
+        title: 'Advanced Wheel Throwing',
+        description: 'Learn advanced wheel throwing techniques',
+        duration: 45,
+        order: 1
+      }
+    ],
+    enrollments: [],
+    createdAt: new Date().toISOString()
+  }
+];
+
+// Mock enrollments database
+const enrollments = [
+  {
+    id: 'enrollment-1',
+    courseId: 'course-1',
+    studentId: 'user-1',
+    studentName: 'John Doe',
+    status: 'enrolled',
+    progress: 0,
+    completedLessons: [],
+    enrolledAt: new Date().toISOString()
   }
 ];
 
@@ -353,9 +424,13 @@ app.get('/api/products/:id', (req, res) => {
   });
 });
 
-// Artisan product management
+// Product management (Artisan and Admin)
 app.post('/api/products', authenticateToken, requireRole(['artisan', 'admin']), (req, res) => {
-  const { name, description, price, stock, material, dimensions, color, style } = req.body;
+  const { name, description, price, stock, material, dimensions, color, style, artisanId } = req.body;
+  
+  // Admin can assign artisanId, otherwise use current user
+  const productArtisanId = req.user.role === 'admin' && artisanId ? artisanId : req.user.id;
+  const artisan = users.find(u => u.id === productArtisanId);
   
   const newProduct = {
     id: `product-${Date.now()}`,
@@ -368,8 +443,8 @@ app.post('/api/products', authenticateToken, requireRole(['artisan', 'admin']), 
     dimensions,
     color,
     style,
-    artisanId: req.user.id,
-    artisanName: req.user.firstName + ' ' + req.user.lastName,
+    artisanId: productArtisanId,
+    artisanName: artisan ? `${artisan.firstName} ${artisan.lastName}` : 'Unknown',
     createdAt: new Date().toISOString()
   };
   
@@ -450,46 +525,411 @@ app.get('/api/products/my-products', authenticateToken, requireRole(['artisan', 
   });
 });
 
-// Mock course endpoints
+// Course endpoints
 app.get('/api/courses', (req, res) => {
   res.json({
     success: true,
     data: {
-      courses: [
-        {
-          id: 'mock-course-1',
-          title: 'Introduction to Jewelry Making',
-          description: 'Learn the basics of jewelry making',
-          price: 149.99,
-          level: 'beginner',
-          duration: 120
-        }
-      ],
+      courses: courses,
       pagination: {
         page: 1,
         limit: 10,
-        total: 1
+        total: courses.length
       }
     }
   });
 });
 
 app.get('/api/courses/featured', (req, res) => {
+  const featuredCourses = courses.filter(c => c.status === 'active').slice(0, 3);
   res.json({
     success: true,
-    data: [
-      {
-        id: 'mock-course-1',
-        title: 'Featured Jewelry Making Course',
-        description: 'Learn the basics of jewelry making',
-        price: 149.99,
-        level: 'beginner'
-      }
-    ]
+    data: featuredCourses
   });
 });
 
-// Order endpoints
+app.get('/api/courses/:id', (req, res) => {
+  const course = courses.find(c => c.id === req.params.id);
+  if (!course) {
+    return res.status(404).json({
+      success: false,
+      message: 'Course not found'
+    });
+  }
+  
+  res.json({
+    success: true,
+    data: course
+  });
+});
+
+// Course management (Trainer and Admin)
+app.post('/api/courses', authenticateToken, requireRole(['trainer', 'admin']), (req, res) => {
+  const { title, description, price, level, duration, instructorId } = req.body;
+  
+  // Admin can assign instructorId, otherwise use current user
+  const courseInstructorId = req.user.role === 'admin' && instructorId ? instructorId : req.user.id;
+  const instructor = users.find(u => u.id === courseInstructorId);
+  
+  const newCourse = {
+    id: `course-${Date.now()}`,
+    title,
+    description,
+    price: parseFloat(price),
+    level: level || 'beginner',
+    duration: parseInt(duration),
+    instructorId: courseInstructorId,
+    instructorName: instructor ? `${instructor.firstName} ${instructor.lastName}` : 'Unknown',
+    status: 'active',
+    thumbnail: null,
+    images: [],
+    videos: [],
+    documents: [],
+    lessons: [],
+    enrollments: [],
+    createdAt: new Date().toISOString()
+  };
+  
+  courses.push(newCourse);
+  
+  res.status(201).json({
+    success: true,
+    message: 'Course created successfully',
+    data: newCourse
+  });
+});
+
+app.put('/api/courses/:id', authenticateToken, requireRole(['trainer', 'admin']), (req, res) => {
+  const course = courses.find(c => c.id === req.params.id);
+  if (!course) {
+    return res.status(404).json({
+      success: false,
+      message: 'Course not found'
+    });
+  }
+  
+  // Check if trainer owns this course (unless admin)
+  if (req.user.role !== 'admin' && course.instructorId !== req.user.id) {
+    return res.status(403).json({
+      success: false,
+      message: 'You can only update your own courses'
+    });
+  }
+  
+  // Update course
+  Object.assign(course, req.body);
+  course.updatedAt = new Date().toISOString();
+  
+  res.json({
+    success: true,
+    message: 'Course updated successfully',
+    data: course
+  });
+});
+
+app.delete('/api/courses/:id', authenticateToken, requireRole(['trainer', 'admin']), (req, res) => {
+  const courseIndex = courses.findIndex(c => c.id === req.params.id);
+  if (courseIndex === -1) {
+    return res.status(404).json({
+      success: false,
+      message: 'Course not found'
+    });
+  }
+  
+  const course = courses[courseIndex];
+  
+  // Check if trainer owns this course (unless admin)
+  if (req.user.role !== 'admin' && course.instructorId !== req.user.id) {
+    return res.status(403).json({
+      success: false,
+      message: 'You can only delete your own courses'
+    });
+  }
+  
+  courses.splice(courseIndex, 1);
+  
+  res.json({
+    success: true,
+    message: 'Course deleted successfully'
+  });
+});
+
+// Get trainer's courses
+app.get('/api/courses/my-courses', authenticateToken, requireRole(['trainer', 'admin']), (req, res) => {
+  const userCourses = courses.filter(c => c.instructorId === req.user.id);
+  
+  res.json({
+    success: true,
+    data: {
+      courses: userCourses,
+      total: userCourses.length
+    }
+  });
+});
+
+// Get course enrollments (Trainer and Admin)
+app.get('/api/courses/:id/enrollments', authenticateToken, requireRole(['trainer', 'admin']), (req, res) => {
+  const course = courses.find(c => c.id === req.params.id);
+  if (!course) {
+    return res.status(404).json({
+      success: false,
+      message: 'Course not found'
+    });
+  }
+  
+  // Check if trainer owns this course (unless admin)
+  if (req.user.role !== 'admin' && course.instructorId !== req.user.id) {
+    return res.status(403).json({
+      success: false,
+      message: 'You can only view enrollments for your own courses'
+    });
+  }
+  
+  const courseEnrollments = enrollments.filter(e => e.courseId === req.params.id);
+  
+  res.json({
+    success: true,
+    data: {
+      enrollments: courseEnrollments,
+      total: courseEnrollments.length
+    }
+  });
+});
+
+// Add lesson to course (Trainer and Admin)
+app.post('/api/courses/:id/lessons', authenticateToken, requireRole(['trainer', 'admin']), (req, res) => {
+  const course = courses.find(c => c.id === req.params.id);
+  if (!course) {
+    return res.status(404).json({
+      success: false,
+      message: 'Course not found'
+    });
+  }
+  
+  // Check if trainer owns this course (unless admin)
+  if (req.user.role !== 'admin' && course.instructorId !== req.user.id) {
+    return res.status(403).json({
+      success: false,
+      message: 'You can only add lessons to your own courses'
+    });
+  }
+  
+  const { title, description, duration, order } = req.body;
+  
+  const newLesson = {
+    id: `lesson-${Date.now()}`,
+    title,
+    description,
+    duration: parseInt(duration),
+    order: parseInt(order) || course.lessons.length + 1
+  };
+  
+  course.lessons.push(newLesson);
+  course.updatedAt = new Date().toISOString();
+  
+  res.status(201).json({
+    success: true,
+    message: 'Lesson added successfully',
+    data: newLesson
+  });
+});
+
+// Update lesson (Trainer and Admin)
+app.put('/api/courses/:courseId/lessons/:lessonId', authenticateToken, requireRole(['trainer', 'admin']), (req, res) => {
+  const course = courses.find(c => c.id === req.params.courseId);
+  if (!course) {
+    return res.status(404).json({
+      success: false,
+      message: 'Course not found'
+    });
+  }
+  
+  // Check if trainer owns this course (unless admin)
+  if (req.user.role !== 'admin' && course.instructorId !== req.user.id) {
+    return res.status(403).json({
+      success: false,
+      message: 'You can only update lessons in your own courses'
+    });
+  }
+  
+  const lesson = course.lessons.find(l => l.id === req.params.lessonId);
+  if (!lesson) {
+    return res.status(404).json({
+      success: false,
+      message: 'Lesson not found'
+    });
+  }
+  
+  Object.assign(lesson, req.body);
+  course.updatedAt = new Date().toISOString();
+  
+  res.json({
+    success: true,
+    message: 'Lesson updated successfully',
+    data: lesson
+  });
+});
+
+// Delete lesson (Trainer and Admin)
+app.delete('/api/courses/:courseId/lessons/:lessonId', authenticateToken, requireRole(['trainer', 'admin']), (req, res) => {
+  const course = courses.find(c => c.id === req.params.courseId);
+  if (!course) {
+    return res.status(404).json({
+      success: false,
+      message: 'Course not found'
+    });
+  }
+  
+  // Check if trainer owns this course (unless admin)
+  if (req.user.role !== 'admin' && course.instructorId !== req.user.id) {
+    return res.status(403).json({
+      success: false,
+      message: 'You can only delete lessons from your own courses'
+    });
+  }
+  
+  const lessonIndex = course.lessons.findIndex(l => l.id === req.params.lessonId);
+  if (lessonIndex === -1) {
+    return res.status(404).json({
+      success: false,
+      message: 'Lesson not found'
+    });
+  }
+  
+  course.lessons.splice(lessonIndex, 1);
+  course.updatedAt = new Date().toISOString();
+  
+  res.json({
+    success: true,
+    message: 'Lesson deleted successfully'
+  });
+});
+
+// Course enrollment
+app.post('/api/courses/:id/enroll', authenticateToken, (req, res) => {
+  const course = courses.find(c => c.id === req.params.id);
+  if (!course) {
+    return res.status(404).json({
+      success: false,
+      message: 'Course not found'
+    });
+  }
+  
+  // Check if already enrolled
+  const existingEnrollment = enrollments.find(e => e.courseId === req.params.id && e.studentId === req.user.id);
+  if (existingEnrollment) {
+    return res.status(400).json({
+      success: false,
+      message: 'You are already enrolled in this course'
+    });
+  }
+  
+  const newEnrollment = {
+    id: `enrollment-${Date.now()}`,
+    courseId: req.params.id,
+    studentId: req.user.id,
+    studentName: `${req.user.firstName} ${req.user.lastName}`,
+    status: 'enrolled',
+    progress: 0,
+    completedLessons: [],
+    enrolledAt: new Date().toISOString()
+  };
+  
+  enrollments.push(newEnrollment);
+  
+  res.status(201).json({
+    success: true,
+    message: 'Successfully enrolled in course',
+    data: newEnrollment
+  });
+});
+
+app.get('/api/courses/my-enrollments', authenticateToken, (req, res) => {
+  const userEnrollments = enrollments.filter(e => e.studentId === req.user.id);
+  
+  // Add course details to enrollments
+  const enrollmentsWithCourses = userEnrollments.map(enrollment => {
+    const course = courses.find(c => c.id === enrollment.courseId);
+    return {
+      ...enrollment,
+      course: course ? {
+        title: course.title,
+        description: course.description,
+        instructorName: course.instructorName,
+        thumbnail: course.thumbnail
+      } : null
+    };
+  });
+  
+  res.json({
+    success: true,
+    data: {
+      enrollments: enrollmentsWithCourses,
+      total: enrollmentsWithCourses.length
+    }
+  });
+});
+
+app.put('/api/courses/enrollments/:enrollmentId/progress', authenticateToken, (req, res) => {
+  const { lessonIndex, totalLessons } = req.body;
+  const enrollment = enrollments.find(e => e.id === req.params.enrollmentId);
+  
+  if (!enrollment) {
+    return res.status(404).json({
+      success: false,
+      message: 'Enrollment not found'
+    });
+  }
+  
+  // Check if user owns this enrollment
+  if (enrollment.studentId !== req.user.id) {
+    return res.status(403).json({
+      success: false,
+      message: 'You can only update your own enrollment progress'
+    });
+  }
+  
+  enrollment.progress = Math.round((lessonIndex / totalLessons) * 100);
+  enrollment.updatedAt = new Date().toISOString();
+  
+  res.json({
+    success: true,
+    message: 'Progress updated successfully',
+    data: enrollment
+  });
+});
+
+app.put('/api/courses/enrollments/:enrollmentId/complete-lesson', authenticateToken, (req, res) => {
+  const { lessonId } = req.body;
+  const enrollment = enrollments.find(e => e.id === req.params.enrollmentId);
+  
+  if (!enrollment) {
+    return res.status(404).json({
+      success: false,
+      message: 'Enrollment not found'
+    });
+  }
+  
+  // Check if user owns this enrollment
+  if (enrollment.studentId !== req.user.id) {
+    return res.status(403).json({
+      success: false,
+      message: 'You can only update your own enrollment progress'
+    });
+  }
+  
+  if (!enrollment.completedLessons.includes(lessonId)) {
+    enrollment.completedLessons.push(lessonId);
+  }
+  
+  enrollment.updatedAt = new Date().toISOString();
+  
+  res.json({
+    success: true,
+    message: 'Lesson marked as complete',
+    data: enrollment
+  });
+});
 app.post('/api/orders', authenticateToken, (req, res) => {
   const { items, shippingAddress, billingAddress, notes } = req.body;
   
