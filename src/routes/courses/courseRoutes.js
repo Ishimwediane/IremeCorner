@@ -1,7 +1,7 @@
 import express from 'express';
 import { CourseController } from '../../controllers/courses/courseController.js';
 import { authenticateToken, requireRole, optionalAuth } from '../../middleware/auth/auth.js';
-import { uploadCourseImages, uploadCourseThumbnail } from '../../services/fileUpload/fileUploadService.js';
+import { uploadCourseImages, uploadCourseThumbnail, uploadCourseVideos, uploadCourseDocuments } from '../../services/fileUpload/fileUploadService.js';
 import {
   validateCourseCreation,
   validateUUID,
@@ -29,8 +29,14 @@ router.put('/enrollments/:enrollmentId/complete-lesson', courseController.markLe
 
 // Instructor routes
 router.post('/', requireRole('artisan'), uploadCourseThumbnail, validateCourseCreation, courseController.createCourse);
-router.put('/:id', validateUUID, uploadCourseImages, courseController.updateCourse);
+router.put('/:id', validateUUID, uploadCourseThumbnail, courseController.updateCourse);
 router.delete('/:id', validateUUID, courseController.deleteCourse);
+
+// Course file upload routes
+router.post('/:id/images', requireRole('artisan'), validateUUID, uploadCourseImages, courseController.uploadCourseImages);
+router.post('/:id/videos', requireRole('artisan'), validateUUID, uploadCourseVideos, courseController.uploadCourseVideos);
+router.post('/:id/documents', requireRole('artisan'), validateUUID, uploadCourseDocuments, courseController.uploadCourseDocuments);
+router.delete('/files/:publicId', requireRole('artisan'), courseController.deleteCourseFile);
 
 // Admin routes
 router.put('/:id/rating', requireRole('admin'), validateUUID, courseController.updateCourseRating);

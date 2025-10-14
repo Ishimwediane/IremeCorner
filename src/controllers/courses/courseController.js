@@ -1,4 +1,5 @@
 import { CourseService } from '../../services/courses/courseService.js';
+import { FileUploadService } from '../../services/fileUpload/fileUploadService.js';
 import { asyncHandler } from '../../middleware/error/errorHandler.js';
 
 export class CourseController {
@@ -7,7 +8,39 @@ export class CourseController {
   }
 
   createCourse = asyncHandler(async (req, res) => {
-    const course = await this.courseService.createCourse(req.body, req.user.id);
+    // Handle thumbnail upload to Cloudinary
+    let thumbnailData = null;
+    if (req.file) {
+      try {
+        thumbnailData = await FileUploadService.uploadCourseThumbnailToCloudinary(req.file, 'temp');
+      } catch (error) {
+        return res.status(400).json({
+          success: false,
+          message: 'Thumbnail upload failed',
+          error: error.message
+        });
+      }
+    }
+
+    // Add thumbnail URL to course data
+    const courseData = {
+      ...req.body,
+      thumbnail: thumbnailData ? thumbnailData.url : null
+    };
+
+    const course = await this.courseService.createCourse(courseData, req.user.id);
+
+    // Update thumbnail with actual course ID
+    if (thumbnailData && course.id) {
+      try {
+        // Re-upload with proper course ID folder structure
+        const updatedThumbnail = await FileUploadService.uploadCourseThumbnailToCloudinary(req.file, course.id);
+        course.thumbnail = updatedThumbnail.url;
+        await this.courseService.updateCourse(course.id, { thumbnail: updatedThumbnail.url }, req.user.id);
+      } catch (error) {
+        console.error('Error updating thumbnail with course ID:', error);
+      }
+    }
 
     res.status(201).json({
       success: true,
@@ -35,9 +68,26 @@ export class CourseController {
   });
 
   updateCourse = asyncHandler(async (req, res) => {
+    // Handle file uploads to Cloudinary
+    let updateData = { ...req.body };
+
+    // Handle thumbnail update
+    if (req.file) {
+      try {
+        const thumbnailData = await FileUploadService.uploadCourseThumbnailToCloudinary(req.file, req.params.id);
+        updateData.thumbnail = thumbnailData.url;
+      } catch (error) {
+        return res.status(400).json({
+          success: false,
+          message: 'Thumbnail upload failed',
+          error: error.message
+        });
+      }
+    }
+
     const course = await this.courseService.updateCourse(
       req.params.id,
-      req.body,
+      updateData,
       req.user.id
     );
 
@@ -149,6 +199,101 @@ export class CourseController {
       message: 'Course rating updated successfully',
       data: course
     });
+  });
+
+  uploadCourseImages = asyncHandler(async (req, res) => {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No images provided'
+      });
+    }
+
+    try {
+      const imagesData = await FileUploadService.uploadCourseImagesToCloudinary(req.files, req.params.id);
+      
+      res.json({
+        success: true,
+        message: 'Course images uploaded successfully',
+        data: imagesData
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: 'Course images upload failed',
+        error: error.message
+      });
+    }
+  });
+
+  uploadCourseVideos = asyncHandler(async (req, res) => {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No videos provided'
+      });
+    }
+
+    try {
+      const videosData = await FileUploadService.uploadCourseVideosToCloudinary(req.files, req.params.id);
+      
+      res.json({
+        success: true,
+        message: 'Course videos uploaded successfully',
+        data: videosData
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: 'Course videos upload failed',
+        error: error.message
+      });
+    }
+  });
+
+  uploadCourseDocuments = asyncHandler(async (req, res) => {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No documents provided'
+      });
+    }
+
+    try {
+      const documentsData = await FileUploadService.uploadCourseDocumentsToCloudinary(req.files, req.params.id);
+      
+      res.json({
+        success: true,
+        message: 'Course documents uploaded successfully',
+        data: documentsData
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: 'Course documents upload failed',
+        error: error.message
+      });
+    }
+  });
+
+  deleteCourseFile = asyncHandler(async (req, res) => {
+    const { publicId } = req.params;
+    
+    try {
+      const result = await FileUploadService.deleteFileFromCloudinary(publicId);
+      
+      res.json({
+        success: true,
+        message: 'File deleted successfully',
+        data: result
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: 'File deletion failed',
+        error: error.message
+      });
+    }
   });
 
   getCourseStatistics = asyncHandler(async (req, res) => {

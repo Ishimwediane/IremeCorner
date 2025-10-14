@@ -39,6 +39,13 @@ export const configs = {
     messageTemplate: process.env.WHATSAPP_MESSAGE_TEMPLATE || 'Hello! I would like to make a payment for order {ORDER_NUMBER}. Amount: ${AMOUNT}',
   },
   
+  // Cloudinary Configuration
+  cloudinary: {
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME || '',
+    apiKey: process.env.CLOUDINARY_API_KEY || '',
+    apiSecret: process.env.CLOUDINARY_API_SECRET || '',
+  },
+  
   // File Upload Configuration
   upload: {
     maxFileSize: parseInt(process.env.MAX_FILE_SIZE || '10485760'), // 10MB

@@ -9,7 +9,7 @@ A comprehensive Node.js backend API for IremeCorner - a platform for handmade cr
 - **Order Management**: Shopping cart, checkout, order tracking, and status updates
 - **Course Management**: Training courses with enrollment, progress tracking, and certificates
 - **Payment Processing**: WhatsApp integration for payment initiation and confirmation
-- **File Upload**: Image and document upload with validation
+- **File Upload**: Cloudinary integration for images, videos, and documents with automatic optimization
 - **Email Notifications**: Automated emails for orders, enrollments, and system notifications
 - **Analytics & Reporting**: Sales statistics and user analytics
 - **Security**: JWT authentication, rate limiting, input validation, and CORS protection
@@ -31,7 +31,7 @@ Instead of traditional payment gateways, IremeCorner uses WhatsApp for a more pe
 - **Database**: PostgreSQL with TypeORM
 - **Authentication**: JWT with refresh tokens
 - **Payments**: WhatsApp integration
-- **File Upload**: Multer with validation
+- **File Upload**: Cloudinary with automatic optimization
 - **Email**: Nodemailer
 - **Security**: Helmet, CORS, Rate Limiting
 - **Validation**: Express-validator
@@ -116,6 +116,11 @@ src/
    WHATSAPP_PHONE_NUMBER=+1234567890
    WHATSAPP_MESSAGE_TEMPLATE=Hello! I would like to make a payment for order {ORDER_NUMBER}. Amount: ${AMOUNT}
 
+   # Cloudinary Configuration
+   CLOUDINARY_CLOUD_NAME=dfe7ue90j
+   CLOUDINARY_API_KEY=623865115459183
+   CLOUDINARY_API_SECRET=MPsMGN6Fc97CXafJSwrOg_Dwvj0
+
    # Other Configuration
    CORS_ORIGIN=http://localhost:3000
    ```
@@ -179,6 +184,10 @@ src/
 - `POST /api/courses/:id/enroll` - Enroll in course
 - `GET /api/courses/my-enrollments` - Get user's enrollments
 - `PUT /api/courses/enrollments/:id/progress` - Update progress
+- `POST /api/courses/:id/images` - Upload course images (Instructor only)
+- `POST /api/courses/:id/videos` - Upload course videos (Instructor only)
+- `POST /api/courses/:id/documents` - Upload course documents (Instructor only)
+- `DELETE /api/courses/files/:publicId` - Delete course file (Instructor only)
 
 ### Payment Endpoints
 
