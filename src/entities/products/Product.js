@@ -152,6 +152,16 @@ export const ProductSchema = new EntitySchema({
       target: 'OrderItem',
       type: 'one-to-many',
       inverseSide: 'product'
+    },
+    reviews: {
+      target: 'Review',
+      type: 'one-to-many',
+      inverseSide: 'product'
+    },
+    wishlistItems: {
+      target: 'WishlistItem',
+      type: 'one-to-many',
+      inverseSide: 'product'
     }
   }
 });

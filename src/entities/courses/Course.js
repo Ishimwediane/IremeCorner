@@ -5,6 +5,8 @@ import { Enrollment } from './Enrollment.js';
 import { Assignment } from './Assignment.js';
 import { Achievement } from './Achievement.js';
 import { Certificate } from './Certificate.js';
+import { Review } from '../reviews/Review.js';
+import { WishlistItem } from '../wishlist/WishlistItem.js';
 
 export const CourseStatus = {
   DRAFT: 'draft',
@@ -127,6 +129,12 @@ export class Course {
 
   @OneToMany(() => Certificate, certificate => certificate.course)
   certificates;
+
+  @OneToMany(() => Review, review => review.course)
+  reviews;
+
+  @OneToMany(() => WishlistItem, wishlistItem => wishlistItem.course)
+  wishlistItems;
 
   // Methods
   getDiscountPercentage() {

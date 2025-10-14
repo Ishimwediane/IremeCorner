@@ -13,6 +13,8 @@ import { Achievement } from '../entities/courses/Achievement.js';
 import { Certificate } from '../entities/courses/Certificate.js';
 import { Payment } from '../entities/payments/Payment.js';
 import { Notification } from '../entities/notifications/Notification.js';
+import { Review } from '../entities/reviews/Review.js';
+import { WishlistItem } from '../entities/wishlist/WishlistItem.js';
 
 config();
 
@@ -38,7 +40,9 @@ export const AppDataSource = new DataSource({
     Achievement,
     Certificate,
     Payment,
-    Notification
+    Notification,
+    Review,
+    WishlistItem
   ],
   migrations: ['src/migrations/*.js'],
   subscribers: ['src/subscribers/*.js'],

@@ -19,6 +19,10 @@ import assignmentRoutes from './routes/courses/assignmentRoutes.js';
 import achievementRoutes from './routes/courses/achievementRoutes.js';
 import certificateRoutes from './routes/courses/certificateRoutes.js';
 import paymentRoutes from './routes/payments/paymentRoutes.js';
+import notificationRoutes from './routes/notifications/notificationRoutes.js';
+import reviewRoutes from './routes/reviews/reviewRoutes.js';
+import wishlistRoutes from './routes/wishlist/wishlistRoutes.js';
+import searchRoutes from './routes/search/searchRoutes.js';
 
 const app = express();
 
@@ -71,6 +75,10 @@ app.use('/api/assignments', assignmentRoutes);
 app.use('/api/achievements', achievementRoutes);
 app.use('/api/certificates', certificateRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/reviews', reviewRoutes);
+app.use('/api/wishlist', wishlistRoutes);
+app.use('/api/search', searchRoutes);
 
 // Admin routes (placeholder for future admin functionality)
 app.get('/api/admin/dashboard', (req, res) => {

@@ -8,6 +8,8 @@ import { AssignmentSubmission } from '../courses/AssignmentSubmission.js';
 import { Certificate } from '../courses/Certificate.js';
 import { Payment } from '../payments/Payment.js';
 import { Notification } from '../notifications/Notification.js';
+import { Review } from '../reviews/Review.js';
+import { WishlistItem } from '../wishlist/WishlistItem.js';
 
 export const UserRole = {
   BUYER: 'buyer',
@@ -109,6 +111,15 @@ export class User {
 
   @OneToMany(() => Notification, notification => notification.user)
   notifications;
+
+  @OneToMany(() => Review, review => review.reviewer)
+  reviews;
+
+  @OneToMany(() => Review, review => review.reviewedUser)
+  receivedReviews;
+
+  @OneToMany(() => WishlistItem, wishlistItem => wishlistItem.user)
+  wishlistItems;
 
   // Methods
   @BeforeInsert()
