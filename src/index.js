@@ -28,6 +28,9 @@ import analyticsRoutes from './routes/analytics/analyticsRoutes.js';
 import storeRoutes from './routes/stores/storeRoutes.js';
 import promotionRoutes from './routes/promotions/promotionRoutes.js';
 import inventoryRoutes from './routes/inventory/inventoryRoutes.js';
+import socialRoutes from './routes/social/socialRoutes.js';
+import contentRoutes from './routes/content/contentRoutes.js';
+import adminRoutes from './routes/admin/adminRoutes.js';
 
 const app = express();
 
@@ -89,6 +92,9 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/stores', storeRoutes);
 app.use('/api/promotions', promotionRoutes);
 app.use('/api/inventory', inventoryRoutes);
+app.use('/api/social', socialRoutes);
+app.use('/api/content', contentRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Admin routes (placeholder for future admin functionality)
 app.get('/api/admin/dashboard', (req, res) => {

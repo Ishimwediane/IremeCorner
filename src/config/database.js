@@ -21,6 +21,14 @@ import { AnalyticsEvent } from '../entities/analytics/AnalyticsEvent.js';
 import { Store } from '../entities/stores/Store.js';
 import { Promotion } from '../entities/promotions/Promotion.js';
 import { InventoryItem } from '../entities/inventory/InventoryItem.js';
+import { SocialPost } from '../entities/social/SocialPost.js';
+import { Like } from '../entities/social/Like.js';
+import { Comment } from '../entities/social/Comment.js';
+import { Follow } from '../entities/social/Follow.js';
+import { ContentPage } from '../entities/content/ContentPage.js';
+import { MediaFile } from '../entities/content/MediaFile.js';
+import { SystemLog } from '../entities/admin/SystemLog.js';
+import { SystemSetting } from '../entities/admin/SystemSetting.js';
 
 config();
 
@@ -54,7 +62,15 @@ export const AppDataSource = new DataSource({
     AnalyticsEvent,
     Store,
     Promotion,
-    InventoryItem
+    InventoryItem,
+    SocialPost,
+    Like,
+    Comment,
+    Follow,
+    ContentPage,
+    MediaFile,
+    SystemLog,
+    SystemSetting
   ],
   migrations: ['src/migrations/*.js'],
   subscribers: ['src/subscribers/*.js'],
