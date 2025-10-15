@@ -3,14 +3,20 @@ import { Search } from 'lucide-react';
 
 const Header = () => {
   return (
-    <header className="relative shadow-md">
+    <header className="relative  bg-[#202f32] shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <div className="flex items-center">
-            <h1 className="text-2xl md:text-3xl font-bold text-orange-300 italic  Henny Penny">IremeCorner</h1>
-          </div>
-
+           <div className="flex items-top">
+          {/* <img 
+            src="/images/log2.png"  // Make sure this is the transparent version
+            alt="IremeCorner Logo"
+           className="h-30 w-50 mix-blend-multiply"
+          
+            // Adjust height as needed
+          /> */}
+          <h1 className="text-2xl md:text-3xl font-bold text-orange-300 italic">IremeCorner</h1>
+        </div>
           {/* Search Bar */}
           <div className="hidden md:flex items-center flex-1 max-w-md mx-8">
             <div className="relative w-full">
@@ -34,10 +40,10 @@ const Header = () => {
         {/* Navigation */}
         <nav className="mt-4 ml-200">
           <div className=" bg-opacity-90 rounded-lg px-6 py-3 inline-flex space-x-8">
-            <a href="/" className="text-gray-800 hover:text-orange-600 font-medium transition-colors">Home</a>
-            <a href="/about" className="text-gray-800 hover:text-orange-600 font-medium transition-colors">About us</a>
-            <a href="/shop" className="text-gray-800 hover:text-orange-600 font-medium transition-colors">Shop Now</a>
-            <a href="/donate" className="text-gray-800 hover:text-orange-600 font-medium transition-colors">Donate</a>
+            <a href="/" className="text-white hover:text-orange-600 font-medium transition-colors">Home</a>
+            <a href="/about" className="text-whit hover:text-orange-600 font-medium transition-colors">About us</a>
+            <a href="/shop" className="text-white hover:text-orange-600 font-medium transition-colors">Shop Now</a>
+            <a href="/donate" className="text-white hover:text-orange-600 font-medium transition-colors">Donate</a>
           </div>
         </nav>
       </div>

@@ -188,6 +188,9 @@ const LoginPage = () => {
                   </div>
 
                   <div>
+                    <label className="block text-gray-700 mb-2 font-medium">
+                     Confirm  Password
+                    </label>
                     <input
                       type="password"
                       name="confirmPassword"
