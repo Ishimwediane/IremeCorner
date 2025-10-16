@@ -2,6 +2,7 @@ import { AppDataSource } from '../config/database.js';
 import { UserSchema, UserRole } from '../entities/auth/User.js';
 import { CategorySchema, CategoryType } from '../entities/products/Category.js';
 import { configs } from '../config/index.js';
+import bcrypt from 'bcryptjs';
 
 export class DatabaseSeeder {
   static async seed() {
@@ -29,11 +30,14 @@ export class DatabaseSeeder {
     });
 
     if (!existingAdmin) {
+      // Hash the admin password
+      const hashedPassword = await bcrypt.hash(configs.admin.password, 12);
+      
       const admin = userRepository.create({
         firstName: 'Admin',
         lastName: 'User',
         email: configs.admin.email,
-        password: configs.admin.password,
+        password: hashedPassword,
         role: UserRole.ADMIN,
         isEmailVerified: true,
         isActive: true
