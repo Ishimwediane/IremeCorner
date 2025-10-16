@@ -31,6 +31,7 @@ import inventoryRoutes from './routes/inventory/inventoryRoutes.js';
 import socialRoutes from './routes/social/socialRoutes.js';
 import contentRoutes from './routes/content/contentRoutes.js';
 import adminRoutes from './routes/admin/adminRoutes.js';
+import categoryRoutes from './routes/categories/categoryRoutes.js';
 
 const app = express();
 
@@ -95,6 +96,7 @@ app.use('/api/inventory', inventoryRoutes);
 app.use('/api/social', socialRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/categories', categoryRoutes);
 
 // Admin routes (placeholder for future admin functionality)
 app.get('/api/admin/dashboard', (req, res) => {

@@ -1,6 +1,6 @@
 import { AppDataSource } from '../config/database.js';
-import { User, UserRole } from '../entities/auth/User.js';
-import { Category, CategoryType } from '../entities/products/Category.js';
+import { UserSchema, UserRole } from '../entities/auth/User.js';
+import { CategorySchema, CategoryType } from '../entities/products/Category.js';
 import { configs } from '../config/index.js';
 
 export class DatabaseSeeder {
@@ -22,7 +22,7 @@ export class DatabaseSeeder {
   }
 
   static async createAdminUser() {
-    const userRepository = AppDataSource.getRepository(User);
+    const userRepository = AppDataSource.getRepository(UserSchema);
     
     const existingAdmin = await userRepository.findOne({
       where: { email: configs.admin.email }
@@ -47,7 +47,7 @@ export class DatabaseSeeder {
   }
 
   static async createDefaultCategories() {
-    const categoryRepository = AppDataSource.getRepository(Category);
+    const categoryRepository = AppDataSource.getRepository(CategorySchema);
 
     const productCategories = [
       { name: 'Jewelry', description: 'Handmade jewelry and accessories', type: CategoryType.PRODUCT },
