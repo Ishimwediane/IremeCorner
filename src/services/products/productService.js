@@ -283,6 +283,86 @@ export class ProductService {
 
     return await this.productRepository.save(product);
   }
+
+  // Admin methods
+  async getAllProductsAdmin(filters = {}) {
+    const {
+      page = 1,
+      limit = 20,
+      categoryId,
+      artisanId,
+      status,
+      minPrice,
+      maxPrice,
+      search,
+      sortBy = 'createdAt',
+      sortOrder = 'DESC'
+    } = filters;
+
+    const queryBuilder = this.productRepository.createQueryBuilder('product')
+      .leftJoinAndSelect('product.artisan', 'artisan')
+      .leftJoinAndSelect('product.category', 'category');
+
+    // Apply filters
+    if (categoryId) {
+      queryBuilder.andWhere('product.categoryId = :categoryId', { categoryId });
+    }
+
+    if (artisanId) {
+      queryBuilder.andWhere('product.artisanId = :artisanId', { artisanId });
+    }
+
+    if (status) {
+      queryBuilder.andWhere('product.status = :status', { status });
+    }
+
+    if (minPrice) {
+      queryBuilder.andWhere('product.price >= :minPrice', { minPrice });
+    }
+
+    if (maxPrice) {
+      queryBuilder.andWhere('product.price <= :maxPrice', { maxPrice });
+    }
+
+    if (search) {
+      queryBuilder.andWhere(
+        '(product.name ILIKE :search OR product.description ILIKE :search)',
+        { search: `%${search}%` }
+      );
+    }
+
+    // Apply sorting
+    queryBuilder.orderBy(`product.${sortBy}`, sortOrder);
+
+    // Apply pagination
+    const offset = (page - 1) * limit;
+    queryBuilder.skip(offset).take(limit);
+
+    const [products, total] = await queryBuilder.getManyAndCount();
+
+    return {
+      products,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    };
+  }
+
+  async updateProductStatus(productId, status) {
+    const product = await this.productRepository.findOne({
+      where: { id: productId }
+    });
+
+    if (!product) {
+      throw new AppError('Product not found', 404);
+    }
+
+    product.status = status;
+    return await this.productRepository.save(product);
+  }
 }
 
 

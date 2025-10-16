@@ -107,6 +107,27 @@ export class ProductController {
       data: product
     });
   });
+
+  // Admin methods
+  getAllProductsAdmin = asyncHandler(async (req, res) => {
+    const result = await this.productService.getAllProductsAdmin(req.query);
+
+    res.json({
+      success: true,
+      data: result
+    });
+  });
+
+  updateProductStatus = asyncHandler(async (req, res) => {
+    const { status } = req.body;
+    const product = await this.productService.updateProductStatus(req.params.id, status);
+
+    res.json({
+      success: true,
+      message: 'Product status updated successfully',
+      data: product
+    });
+  });
 }
 
 

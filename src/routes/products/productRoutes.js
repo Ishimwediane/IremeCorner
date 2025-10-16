@@ -28,8 +28,13 @@ router.put('/:id', validateUUID, uploadProductImages, validateProductUpdate, pro
 router.delete('/:id', validateUUID, productController.deleteProduct);
 router.get('/artisan/:artisanId?', productController.getProductsByArtisan);
 
-// Admin routes
-router.put('/:id/rating', requireRole('admin'), validateUUID, productController.updateProductRating);
+// Admin routes - Full product management
+router.post('/admin', requireRole('admin'), uploadProductImages, validateProductCreation, productController.createProduct);
+router.put('/admin/:id', requireRole('admin'), validateUUID, uploadProductImages, validateProductUpdate, productController.updateProduct);
+router.delete('/admin/:id', requireRole('admin'), validateUUID, productController.deleteProduct);
+router.get('/admin/all', requireRole('admin'), validatePagination, productController.getAllProductsAdmin);
+router.put('/admin/:id/rating', requireRole('admin'), validateUUID, productController.updateProductRating);
+router.put('/admin/:id/status', requireRole('admin'), validateUUID, productController.updateProductStatus);
 
 export default router;
 
