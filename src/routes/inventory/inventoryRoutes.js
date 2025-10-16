@@ -35,3 +35,6 @@ router.post('/bulk-update', inventoryController.bulkUpdateInventory);
 router.get('/export', inventoryController.exportInventory);
 
 export default router;
+
+
+

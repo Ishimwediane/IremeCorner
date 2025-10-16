@@ -32,3 +32,6 @@ router.get('/artisan/:artisanId?', productController.getProductsByArtisan);
 router.put('/:id/rating', requireRole('admin'), validateUUID, productController.updateProductRating);
 
 export default router;
+
+
+

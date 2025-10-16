@@ -34,3 +34,6 @@ router.put('/:storeId/verify', validateUUID, requireRole(['admin']), storeContro
 router.put('/:storeId/suspend', validateUUID, requireRole(['admin']), storeController.suspendStore);
 
 export default router;
+
+
+

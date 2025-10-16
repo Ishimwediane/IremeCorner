@@ -1,16 +1,16 @@
 import { AppDataSource } from '../../config/database.js';
-import { Course, CourseStatus, CourseLevel } from '../../entities/courses/Course.js';
-import { Enrollment, EnrollmentStatus } from '../../entities/courses/Enrollment.js';
-import { Category } from '../../entities/products/Category.js';
-import { User } from '../../entities/auth/User.js';
+import { CourseSchema, CourseStatus, CourseLevel } from '../../entities/courses/Course.js';
+import { EnrollmentSchema, EnrollmentStatus } from '../../entities/courses/Enrollment.js';
+import { CategorySchema } from '../../entities/products/Category.js';
+import { UserSchema } from '../../entities/auth/User.js';
 import { AppError } from '../../middleware/error/errorHandler.js';
 
 export class CourseService {
   constructor() {
-    this.courseRepository = AppDataSource.getRepository(Course);
-    this.enrollmentRepository = AppDataSource.getRepository(Enrollment);
-    this.categoryRepository = AppDataSource.getRepository(Category);
-    this.userRepository = AppDataSource.getRepository(User);
+    this.courseRepository = AppDataSource.getRepository(CourseSchema);
+    this.enrollmentRepository = AppDataSource.getRepository(EnrollmentSchema);
+    this.categoryRepository = AppDataSource.getRepository(CategorySchema);
+    this.userRepository = AppDataSource.getRepository(UserSchema);
   }
 
   async createCourse(courseData, instructorId) {
@@ -381,3 +381,5 @@ export class CourseService {
     };
   }
 }
+
+

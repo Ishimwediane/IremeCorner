@@ -1,6 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { Assignment } from './Assignment.js';
-import { User } from '../auth/User.js';
+import { EntitySchema } from 'typeorm';
 
 export const SubmissionStatus = {
   SUBMITTED: 'submitted',
@@ -8,57 +6,94 @@ export const SubmissionStatus = {
   RETURNED: 'returned',
 };
 
-@Entity('assignment_submissions')
+export const AssignmentSubmissionSchema = new EntitySchema({
+  name: 'AssignmentSubmission',
+  tableName: 'assignment_submissions',
+  columns: {
+    id: {
+      type: 'uuid',
+      primary: true,
+      generated: 'uuid'
+    },
+    submissionText: {
+      type: 'text',
+      nullable: true
+    },
+    attachments: {
+      type: 'json',
+      nullable: true
+    },
+    answers: {
+      type: 'json',
+      nullable: true
+    },
+    score: {
+      type: 'int',
+      nullable: true
+    },
+    feedback: {
+      type: 'text',
+      nullable: true
+    },
+    status: {
+      type: 'enum',
+      enum: Object.values(SubmissionStatus),
+      default: SubmissionStatus.SUBMITTED
+    },
+    gradedAt: {
+      type: 'timestamp',
+      nullable: true
+    },
+    gradedBy: {
+      type: 'uuid',
+      nullable: true
+    },
+    createdAt: {
+      type: 'timestamp',
+      createDate: true
+    },
+    updatedAt: {
+      type: 'timestamp',
+      updateDate: true
+    },
+    assignmentId: {
+      type: 'uuid'
+    },
+    studentId: {
+      type: 'uuid'
+    }
+  },
+  relations: {
+    assignment: {
+      target: 'Assignment',
+      type: 'many-to-one',
+      joinColumn: { name: 'assignmentId' }
+    },
+    student: {
+      target: 'User',
+      type: 'many-to-one',
+      joinColumn: { name: 'studentId' }
+    }
+  }
+});
+
 export class AssignmentSubmission {
-  @PrimaryGeneratedColumn('uuid')
-  id;
+  constructor() {
+    this.id = null;
+    this.submissionText = null;
+    this.attachments = null;
+    this.answers = null;
+    this.score = null;
+    this.feedback = null;
+    this.status = SubmissionStatus.SUBMITTED;
+    this.gradedAt = null;
+    this.gradedBy = null;
+    this.createdAt = null;
+    this.updatedAt = null;
+    this.assignmentId = null;
+    this.studentId = null;
+  }
 
-  @Column({ type: 'text', nullable: true })
-  submissionText;
-
-  @Column({ type: 'json', nullable: true })
-  attachments; // File attachments
-
-  @Column({ type: 'json', nullable: true })
-  answers; // For quiz submissions
-
-  @Column({ type: 'int', nullable: true })
-  score;
-
-  @Column({ type: 'text', nullable: true })
-  feedback;
-
-  @Column({ type: 'enum', enum: Object.values(SubmissionStatus), default: SubmissionStatus.SUBMITTED })
-  status;
-
-  @Column({ type: 'timestamp', nullable: true })
-  gradedAt;
-
-  @Column({ type: 'uuid', nullable: true })
-  gradedBy;
-
-  @CreateDateColumn()
-  createdAt;
-
-  @UpdateDateColumn()
-  updatedAt;
-
-  // Relations
-  @ManyToOne(() => Assignment, assignment => assignment.submissions)
-  @JoinColumn({ name: 'assignmentId' })
-  assignment;
-
-  @Column({ type: 'uuid' })
-  assignmentId;
-
-  @ManyToOne(() => User, user => user.assignmentSubmissions)
-  @JoinColumn({ name: 'studentId' })
-  student;
-
-  @Column({ type: 'uuid' })
-  studentId;
-
-  // Methods
   getGradePercentage() {
     if (!this.score || !this.assignment) return 0;
     return Math.round((this.score / this.assignment.maxPoints) * 100);
@@ -73,3 +108,6 @@ export class AssignmentSubmission {
     return new Date(this.createdAt) > new Date(this.assignment.dueDate);
   }
 }
+
+
+

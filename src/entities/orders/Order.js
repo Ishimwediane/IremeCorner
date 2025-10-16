@@ -1,6 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
-import { User } from '../auth/User.js';
-import { OrderItem } from './OrderItem.js';
+import { EntitySchema } from 'typeorm';
 
 export const OrderStatus = {
   PENDING: 'pending',
@@ -19,80 +17,149 @@ export const PaymentStatus = {
   REFUNDED: 'refunded',
 };
 
-@Entity('orders')
+export const OrderSchema = new EntitySchema({
+  name: 'Order',
+  tableName: 'orders',
+  columns: {
+    id: {
+      type: 'uuid',
+      primary: true,
+      generated: 'uuid'
+    },
+    orderNumber: {
+      type: 'varchar',
+      length: 50,
+      unique: true
+    },
+    subtotal: {
+      type: 'decimal',
+      precision: 10,
+      scale: 2
+    },
+    tax: {
+      type: 'decimal',
+      precision: 10,
+      scale: 2,
+      default: 0
+    },
+    shipping: {
+      type: 'decimal',
+      precision: 10,
+      scale: 2,
+      default: 0
+    },
+    discount: {
+      type: 'decimal',
+      precision: 10,
+      scale: 2,
+      default: 0
+    },
+    totalAmount: {
+      type: 'decimal',
+      precision: 10,
+      scale: 2
+    },
+    status: {
+      type: 'varchar',
+      length: 50,
+      default: OrderStatus.PENDING
+    },
+    paymentStatus: {
+      type: 'varchar',
+      length: 50,
+      default: PaymentStatus.PENDING
+    },
+    paymentMethod: {
+      type: 'varchar',
+      length: 100,
+      nullable: true
+    },
+    paymentReference: {
+      type: 'varchar',
+      length: 255,
+      nullable: true
+    },
+    shippingAddress: {
+      type: 'varchar',
+      length: 100
+    },
+    billingAddress: {
+      type: 'varchar',
+      length: 100
+    },
+    trackingNumber: {
+      type: 'varchar',
+      length: 100,
+      nullable: true
+    },
+    notes: {
+      type: 'text',
+      nullable: true
+    },
+    shippedAt: {
+      type: 'timestamp',
+      nullable: true
+    },
+    deliveredAt: {
+      type: 'timestamp',
+      nullable: true
+    },
+    cancelledAt: {
+      type: 'timestamp',
+      nullable: true
+    },
+    createdAt: {
+      type: 'timestamp',
+      createDate: true
+    },
+    updatedAt: {
+      type: 'timestamp',
+      updateDate: true
+    },
+    buyerId: {
+      type: 'uuid'
+    }
+  },
+  relations: {
+    buyer: {
+      target: 'User',
+      type: 'many-to-one',
+      joinColumn: { name: 'buyerId' }
+    },
+    orderItems: {
+      target: 'OrderItem',
+      type: 'one-to-many',
+      inverseSide: 'order',
+      cascade: true
+    }
+  }
+});
+
 export class Order {
-  @PrimaryGeneratedColumn('uuid')
-  id;
+  constructor() {
+    this.id = null;
+    this.orderNumber = '';
+    this.subtotal = 0;
+    this.tax = 0;
+    this.shipping = 0;
+    this.discount = 0;
+    this.totalAmount = 0;
+    this.status = OrderStatus.PENDING;
+    this.paymentStatus = PaymentStatus.PENDING;
+    this.paymentMethod = null;
+    this.paymentReference = null;
+    this.shippingAddress = '';
+    this.billingAddress = '';
+    this.trackingNumber = null;
+    this.notes = null;
+    this.shippedAt = null;
+    this.deliveredAt = null;
+    this.cancelledAt = null;
+    this.createdAt = null;
+    this.updatedAt = null;
+    this.buyerId = null;
+  }
 
-  @Column({ type: 'varchar', length: 50, unique: true })
-  orderNumber;
-
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
-  subtotal;
-
-  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
-  tax;
-
-  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
-  shipping;
-
-  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
-  discount;
-
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
-  totalAmount;
-
-  @Column({ type: 'varchar', length: 50, default: OrderStatus.PENDING })
-  status;
-
-  @Column({ type: 'varchar', length: 50, default: PaymentStatus.PENDING })
-  paymentStatus;
-
-  @Column({ type: 'varchar', length: 100, nullable: true })
-  paymentMethod;
-
-  @Column({ type: 'varchar', length: 255, nullable: true })
-  paymentReference;
-
-  @Column({ type: 'varchar', length: 100 })
-  shippingAddress;
-
-  @Column({ type: 'varchar', length: 100 })
-  billingAddress;
-
-  @Column({ type: 'varchar', length: 100, nullable: true })
-  trackingNumber;
-
-  @Column({ type: 'text', nullable: true })
-  notes;
-
-  @Column({ type: 'timestamp', nullable: true })
-  shippedAt;
-
-  @Column({ type: 'timestamp', nullable: true })
-  deliveredAt;
-
-  @Column({ type: 'timestamp', nullable: true })
-  cancelledAt;
-
-  @CreateDateColumn()
-  createdAt;
-
-  @UpdateDateColumn()
-  updatedAt;
-
-  // Relations
-  @ManyToOne(() => User, user => user.orders)
-  @JoinColumn({ name: 'buyerId' })
-  buyer;
-
-  @Column({ type: 'uuid' })
-  buyerId;
-
-  @OneToMany(() => OrderItem, orderItem => orderItem.order, { cascade: true })
-  orderItems;
-
-  // Methods
   generateOrderNumber() {
     const timestamp = Date.now().toString(36);
     const random = Math.random().toString(36).substr(2, 5);

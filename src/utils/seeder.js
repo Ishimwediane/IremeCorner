@@ -84,3 +84,6 @@ export class DatabaseSeeder {
     console.log('📂 Default categories created');
   }
 }
+
+
+

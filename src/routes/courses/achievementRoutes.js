@@ -23,3 +23,6 @@ router.delete('/:achievementId', validateUUID, requireRole(['admin']), achieveme
 router.post('/:achievementId/award', validateUUID, requireRole(['admin']), achievementController.awardAchievement);
 
 export default router;
+
+
+

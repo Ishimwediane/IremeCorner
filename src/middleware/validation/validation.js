@@ -211,6 +211,39 @@ export const validateCourseCreation = [
   handleValidationErrors
 ];
 
+// Assignment validation rules
+export const validateAssignmentCreation = [
+  body('title')
+    .trim()
+    .isLength({ min: 3, max: 200 })
+    .withMessage('Assignment title must be between 3 and 200 characters'),
+  
+  body('description')
+    .trim()
+    .isLength({ min: 10, max: 2000 })
+    .withMessage('Description must be between 10 and 2000 characters'),
+  
+  body('instructions')
+    .trim()
+    .isLength({ min: 10, max: 5000 })
+    .withMessage('Instructions must be between 10 and 5000 characters'),
+  
+  body('maxPoints')
+    .isInt({ min: 1, max: 1000 })
+    .withMessage('Max points must be between 1 and 1000'),
+  
+  body('dueDate')
+    .isISO8601()
+    .withMessage('Due date must be a valid date'),
+  
+  body('type')
+    .optional()
+    .isIn(['assignment', 'quiz', 'project'])
+    .withMessage('Invalid assignment type'),
+  
+  handleValidationErrors
+];
+
 // Common validation rules
 export const validateUUID = [
   param('id')
@@ -244,3 +277,4 @@ export const validatePagination = [
   
   handleValidationErrors
 ];
+

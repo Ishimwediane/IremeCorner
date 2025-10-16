@@ -1,55 +1,92 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { Order } from './Order.js';
-import { Product } from '../products/Product.js';
+import { EntitySchema } from 'typeorm';
 
-@Entity('order_items')
+export const OrderItemSchema = new EntitySchema({
+  name: 'OrderItem',
+  tableName: 'order_items',
+  columns: {
+    id: {
+      type: 'uuid',
+      primary: true,
+      generated: 'uuid'
+    },
+    quantity: {
+      type: 'int'
+    },
+    price: {
+      type: 'decimal',
+      precision: 10,
+      scale: 2
+    },
+    originalPrice: {
+      type: 'decimal',
+      precision: 10,
+      scale: 2,
+      nullable: true
+    },
+    total: {
+      type: 'decimal',
+      precision: 10,
+      scale: 2
+    },
+    productName: {
+      type: 'varchar',
+      length: 200
+    },
+    productImage: {
+      type: 'varchar',
+      length: 500,
+      nullable: true
+    },
+    productSpecifications: {
+      type: 'json',
+      nullable: true
+    },
+    createdAt: {
+      type: 'timestamp',
+      createDate: true
+    },
+    updatedAt: {
+      type: 'timestamp',
+      updateDate: true
+    },
+    orderId: {
+      type: 'uuid'
+    },
+    productId: {
+      type: 'uuid'
+    }
+  },
+  relations: {
+    order: {
+      target: 'Order',
+      type: 'many-to-one',
+      joinColumn: { name: 'orderId' },
+      onDelete: 'CASCADE'
+    },
+    product: {
+      target: 'Product',
+      type: 'many-to-one',
+      joinColumn: { name: 'productId' }
+    }
+  }
+});
+
 export class OrderItem {
-  @PrimaryGeneratedColumn('uuid')
-  id;
+  constructor() {
+    this.id = null;
+    this.quantity = 0;
+    this.price = 0;
+    this.originalPrice = null;
+    this.total = 0;
+    this.productName = '';
+    this.productImage = null;
+    this.productSpecifications = null;
+    this.createdAt = null;
+    this.updatedAt = null;
+    this.orderId = null;
+    this.productId = null;
+  }
 
-  @Column({ type: 'int' })
-  quantity;
-
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
-  price;
-
-  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
-  originalPrice;
-
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
-  total;
-
-  @Column({ type: 'varchar', length: 200 })
-  productName;
-
-  @Column({ type: 'varchar', length: 500, nullable: true })
-  productImage;
-
-  @Column({ type: 'json', nullable: true })
-  productSpecifications;
-
-  @CreateDateColumn()
-  createdAt;
-
-  @UpdateDateColumn()
-  updatedAt;
-
-  // Relations
-  @ManyToOne(() => Order, order => order.orderItems, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'orderId' })
-  order;
-
-  @Column({ type: 'uuid' })
-  orderId;
-
-  @ManyToOne(() => Product, product => product.orderItems)
-  @JoinColumn({ name: 'productId' })
-  product;
-
-  @Column({ type: 'uuid' })
-  productId;
-
-  // Methods
   calculateTotal() {
     this.total = this.price * this.quantity;
   }
@@ -61,3 +98,4 @@ export class OrderItem {
     return 0;
   }
 }
+

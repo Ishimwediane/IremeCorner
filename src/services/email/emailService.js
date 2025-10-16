@@ -204,3 +204,5 @@ export class EmailService {
     return html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
   }
 }
+
+

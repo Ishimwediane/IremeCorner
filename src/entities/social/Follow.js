@@ -1,5 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Index, Unique } from 'typeorm';
-import { User } from '../auth/User.js';
+import { EntitySchema } from 'typeorm';
 
 export const FollowStatus = {
   PENDING: 'pending',
@@ -7,60 +6,25 @@ export const FollowStatus = {
   BLOCKED: 'blocked',
 };
 
-@Entity('follows')
-@Unique(['followerId', 'followingId'])
-@Index(['followerId'])
-@Index(['followingId'])
+export const FollowSchema = new EntitySchema({
+  name: 'Follow',
+  tableName: 'follows',
+  columns: {
+    id: {
+      type: 'uuid',
+      primary: true,
+      generated: 'uuid'
+    }
+    // TODO: Add other column definitions
+  },
+  relations: {
+    // TODO: Add relation definitions
+  }
+});
+
 export class Follow {
-  @PrimaryGeneratedColumn('uuid')
-  id;
-
-  @Column({ type: 'varchar', length: 50, default: FollowStatus.ACCEPTED })
-  status;
-
-  @Column({ type: 'timestamp', nullable: true })
-  acceptedAt;
-
-  @CreateDateColumn()
-  createdAt;
-
-  @UpdateDateColumn()
-  updatedAt;
-
-  // Relations
-  @ManyToOne(() => User, user => user.following)
-  @JoinColumn({ name: 'followerId' })
-  follower;
-
-  @Column({ type: 'uuid' })
-  followerId;
-
-  @ManyToOne(() => User, user => user.followers)
-  @JoinColumn({ name: 'followingId' })
-  following;
-
-  @Column({ type: 'uuid' })
-  followingId;
-
-  // Methods
-  accept() {
-    this.status = FollowStatus.ACCEPTED;
-    this.acceptedAt = new Date();
-  }
-
-  block() {
-    this.status = FollowStatus.BLOCKED;
-  }
-
-  isAccepted() {
-    return this.status === FollowStatus.ACCEPTED;
-  }
-
-  isBlocked() {
-    return this.status === FollowStatus.BLOCKED;
-  }
-
-  isPending() {
-    return this.status === FollowStatus.PENDING;
+  constructor() {
+    this.id = null;
+    // TODO: Initialize other properties
   }
 }

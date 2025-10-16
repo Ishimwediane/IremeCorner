@@ -29,3 +29,6 @@ router.put('/change-password', authController.changePassword);
 router.delete('/deactivate', authController.deactivateAccount);
 
 export default router;
+
+
+

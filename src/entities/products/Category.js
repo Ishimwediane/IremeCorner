@@ -1,49 +1,85 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
-import { User } from '../auth/User.js';
-import { Product } from '../products/Product.js';
-import { Course } from '../courses/Course.js';
+import { EntitySchema } from 'typeorm';
 
 export const CategoryType = {
   PRODUCT: 'product',
   COURSE: 'course',
 };
 
-@Entity('categories')
+export const CategorySchema = new EntitySchema({
+  name: 'Category',
+  tableName: 'categories',
+  columns: {
+    id: {
+      type: 'uuid',
+      primary: true,
+      generated: 'uuid'
+    },
+    name: {
+      type: 'varchar',
+      length: 100
+    },
+    description: {
+      type: 'varchar',
+      length: 500,
+      nullable: true
+    },
+    image: {
+      type: 'varchar',
+      length: 500,
+      nullable: true
+    },
+    type: {
+      type: 'enum',
+      enum: Object.values(CategoryType)
+    },
+    slug: {
+      type: 'varchar',
+      length: 50,
+      nullable: true
+    },
+    isActive: {
+      type: 'boolean',
+      default: true
+    },
+    sortOrder: {
+      type: 'int',
+      default: 0
+    },
+    createdAt: {
+      type: 'timestamp',
+      createDate: true
+    },
+    updatedAt: {
+      type: 'timestamp',
+      updateDate: true
+    }
+  },
+  relations: {
+    products: {
+      target: 'Product',
+      type: 'one-to-many',
+      inverseSide: 'category'
+    },
+    courses: {
+      target: 'Course',
+      type: 'one-to-many',
+      inverseSide: 'category'
+    }
+  }
+});
+
 export class Category {
-  @PrimaryGeneratedColumn('uuid')
-  id;
-
-  @Column({ type: 'varchar', length: 100 })
-  name;
-
-  @Column({ type: 'varchar', length: 500, nullable: true })
-  description;
-
-  @Column({ type: 'varchar', length: 500, nullable: true })
-  image;
-
-  @Column({ type: 'enum', enum: Object.values(CategoryType) })
-  type;
-
-  @Column({ type: 'varchar', length: 50, nullable: true })
-  slug;
-
-  @Column({ type: 'boolean', default: true })
-  isActive;
-
-  @Column({ type: 'int', default: 0 })
-  sortOrder;
-
-  @CreateDateColumn()
-  createdAt;
-
-  @UpdateDateColumn()
-  updatedAt;
-
-  // Relations
-  @OneToMany(() => Product, product => product.category)
-  products;
-
-  @OneToMany(() => Course, course => course.category)
-  courses;
+  constructor() {
+    this.id = null;
+    this.name = '';
+    this.description = null;
+    this.image = null;
+    this.type = CategoryType.PRODUCT;
+    this.slug = null;
+    this.isActive = true;
+    this.sortOrder = 0;
+    this.createdAt = null;
+    this.updatedAt = null;
+  }
 }
+

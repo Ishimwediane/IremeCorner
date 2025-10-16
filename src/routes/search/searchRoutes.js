@@ -24,3 +24,6 @@ router.get('/analytics', authenticateToken, requireRole(['admin']), searchContro
 router.post('/advanced', authenticateToken, searchController.advancedSearch);
 
 export default router;
+
+
+

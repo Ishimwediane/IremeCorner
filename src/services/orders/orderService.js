@@ -1,18 +1,18 @@
 import { AppDataSource } from '../../config/database.js';
-import { Order, OrderStatus, PaymentStatus } from '../../entities/orders/Order.js';
-import { OrderItem } from '../../entities/orders/OrderItem.js';
-import { Product } from '../../entities/products/Product.js';
-import { User } from '../../entities/auth/User.js';
-import { Payment } from '../../entities/payments/Payment.js';
+import { OrderSchema, OrderStatus, PaymentStatus } from '../../entities/orders/Order.js';
+import { OrderItemSchema } from '../../entities/orders/OrderItem.js';
+import { ProductSchema } from '../../entities/products/Product.js';
+import { UserSchema } from '../../entities/auth/User.js';
+import { PaymentSchema } from '../../entities/payments/Payment.js';
 import { AppError } from '../../middleware/error/errorHandler.js';
 
 export class OrderService {
   constructor() {
-    this.orderRepository = AppDataSource.getRepository(Order);
-    this.orderItemRepository = AppDataSource.getRepository(OrderItem);
-    this.productRepository = AppDataSource.getRepository(Product);
-    this.userRepository = AppDataSource.getRepository(User);
-    this.paymentRepository = AppDataSource.getRepository(Payment);
+    this.orderRepository = AppDataSource.getRepository(OrderSchema);
+    this.orderItemRepository = AppDataSource.getRepository(OrderItemSchema);
+    this.productRepository = AppDataSource.getRepository(ProductSchema);
+    this.userRepository = AppDataSource.getRepository(UserSchema);
+    this.paymentRepository = AppDataSource.getRepository(PaymentSchema);
   }
 
   async createOrder(orderData, buyerId) {

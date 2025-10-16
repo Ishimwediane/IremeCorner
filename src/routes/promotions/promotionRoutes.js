@@ -33,3 +33,6 @@ router.get('/templates', requireRole(['admin']), promotionController.getPromotio
 router.post('/from-template', requireRole(['admin']), promotionController.createFromTemplate);
 
 export default router;
+
+
+

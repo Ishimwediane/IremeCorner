@@ -1,12 +1,12 @@
 import jwt from 'jsonwebtoken';
 import { AppDataSource } from '../../config/database.js';
-import { User, UserRole } from '../../entities/auth/User.js';
+import { UserSchema, UserRole } from '../../entities/auth/User.js';
 import { configs } from '../../config/index.js';
 import { AppError } from '../../middleware/error/errorHandler.js';
 
 export class AuthService {
   constructor() {
-    this.userRepository = AppDataSource.getRepository(User);
+    this.userRepository = AppDataSource.getRepository(UserSchema);
   }
 
   async register(userData) {
@@ -211,3 +211,5 @@ export class AuthService {
     return { message: 'Account deactivated successfully' };
   }
 }
+
+

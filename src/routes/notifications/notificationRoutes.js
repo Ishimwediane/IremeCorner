@@ -23,3 +23,6 @@ router.post('/templates', requireRole(['admin']), notificationController.createT
 router.get('/stats', requireRole(['admin']), notificationController.getNotificationStats);
 
 export default router;
+
+
+

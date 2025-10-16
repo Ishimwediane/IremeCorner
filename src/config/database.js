@@ -1,34 +1,34 @@
 import { DataSource } from 'typeorm';
 import { config } from 'dotenv';
-import { User } from '../entities/auth/User.js';
+import { UserSchema } from '../entities/auth/User.js';
 import { ProductSchema } from '../entities/products/Product.js';
-import { Category } from '../entities/products/Category.js';
-import { Order } from '../entities/orders/Order.js';
-import { OrderItem } from '../entities/orders/OrderItem.js';
-import { Course } from '../entities/courses/Course.js';
-import { Enrollment } from '../entities/courses/Enrollment.js';
-import { Assignment } from '../entities/courses/Assignment.js';
-import { AssignmentSubmission } from '../entities/courses/AssignmentSubmission.js';
-import { Achievement } from '../entities/courses/Achievement.js';
-import { Certificate } from '../entities/courses/Certificate.js';
-import { Payment } from '../entities/payments/Payment.js';
-import { Notification } from '../entities/notifications/Notification.js';
-import { Review } from '../entities/reviews/Review.js';
-import { WishlistItem } from '../entities/wishlist/WishlistItem.js';
-import { Message } from '../entities/messaging/Message.js';
-import { Conversation } from '../entities/messaging/Conversation.js';
-import { AnalyticsEvent } from '../entities/analytics/AnalyticsEvent.js';
-import { Store } from '../entities/stores/Store.js';
-import { Promotion } from '../entities/promotions/Promotion.js';
-import { InventoryItem } from '../entities/inventory/InventoryItem.js';
-import { SocialPost } from '../entities/social/SocialPost.js';
-import { Like } from '../entities/social/Like.js';
-import { Comment } from '../entities/social/Comment.js';
-import { Follow } from '../entities/social/Follow.js';
-import { ContentPage } from '../entities/content/ContentPage.js';
-import { MediaFile } from '../entities/content/MediaFile.js';
-import { SystemLog } from '../entities/admin/SystemLog.js';
-import { SystemSetting } from '../entities/admin/SystemSetting.js';
+import { CategorySchema } from '../entities/products/Category.js';
+import { OrderSchema } from '../entities/orders/Order.js';
+import { OrderItemSchema } from '../entities/orders/OrderItem.js';
+import { CourseSchema } from '../entities/courses/Course.js';
+import { EnrollmentSchema } from '../entities/courses/Enrollment.js';
+import { AssignmentSchema } from '../entities/courses/Assignment.js';
+import { AssignmentSubmissionSchema } from '../entities/courses/AssignmentSubmission.js';
+import { AchievementSchema } from '../entities/courses/Achievement.js';
+import { CertificateSchema } from '../entities/courses/Certificate.js';
+import { PaymentSchema } from '../entities/payments/Payment.js';
+import { NotificationSchema } from '../entities/notifications/Notification.js';
+import { ReviewSchema } from '../entities/reviews/Review.js';
+import { WishlistItemSchema } from '../entities/wishlist/WishlistItem.js';
+import { MessageSchema } from '../entities/messaging/Message.js';
+import { ConversationSchema } from '../entities/messaging/Conversation.js';
+import { AnalyticsEventSchema } from '../entities/analytics/AnalyticsEvent.js';
+import { StoreSchema } from '../entities/stores/Store.js';
+import { PromotionSchema } from '../entities/promotions/Promotion.js';
+import { InventoryItemSchema } from '../entities/inventory/InventoryItem.js';
+import { SocialPostSchema } from '../entities/social/SocialPost.js';
+import { LikeSchema } from '../entities/social/Like.js';
+import { CommentSchema } from '../entities/social/Comment.js';
+import { FollowSchema } from '../entities/social/Follow.js';
+import { ContentPageSchema } from '../entities/content/ContentPage.js';
+import { MediaFileSchema } from '../entities/content/MediaFile.js';
+import { SystemLogSchema } from '../entities/admin/SystemLog.js';
+import { SystemSettingSchema } from '../entities/admin/SystemSetting.js';
 
 config();
 
@@ -39,38 +39,38 @@ export const AppDataSource = new DataSource({
   username: process.env.DB_USERNAME || 'postgres',
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'iremecorner_db',
-  synchronize: process.env.NODE_ENV === 'development',
+  synchronize: false, // Disable synchronize to avoid conflicts
   logging: process.env.NODE_ENV === 'development',
   entities: [
-    User,
+    UserSchema,
     ProductSchema,
-    Category,
-    Order,
-    OrderItem,
-    Course,
-    Enrollment,
-    Assignment,
-    AssignmentSubmission,
-    Achievement,
-    Certificate,
-    Payment,
-    Notification,
-    Review,
-    WishlistItem,
-    Message,
-    Conversation,
-    AnalyticsEvent,
-    Store,
-    Promotion,
-    InventoryItem,
-    SocialPost,
-    Like,
-    Comment,
-    Follow,
-    ContentPage,
-    MediaFile,
-    SystemLog,
-    SystemSetting
+    CategorySchema,
+    OrderSchema,
+    OrderItemSchema,
+    CourseSchema,
+    EnrollmentSchema,
+    AssignmentSchema,
+    AssignmentSubmissionSchema,
+    AchievementSchema,
+    CertificateSchema,
+    PaymentSchema,
+    NotificationSchema,
+    ReviewSchema,
+    WishlistItemSchema,
+    MessageSchema,
+    ConversationSchema,
+    AnalyticsEventSchema,
+    StoreSchema,
+    PromotionSchema,
+    InventoryItemSchema,
+    SocialPostSchema,
+    LikeSchema,
+    CommentSchema,
+    FollowSchema,
+    ContentPageSchema,
+    MediaFileSchema,
+    SystemLogSchema,
+    SystemSettingSchema
   ],
   migrations: ['src/migrations/*.js'],
   subscribers: ['src/subscribers/*.js'],

@@ -109,3 +109,4 @@ export class AppError extends Error {
 export const createError = (message, statusCode = 500) => {
   return new AppError(message, statusCode);
 };
+

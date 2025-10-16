@@ -276,3 +276,6 @@ const response = await fetch(`/api/courses/${courseId}/images`, {
 4. **Monitor Usage**: Keep track of bandwidth and storage costs
 5. **Clean Up**: Regularly delete unused files to save costs
 6. **Use Transformations**: Leverage Cloudinary's transformation API for different use cases
+
+
+

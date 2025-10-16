@@ -1,12 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
-import { User } from '../auth/User.js';
-import { Category } from '../products/Category.js';
-import { Enrollment } from './Enrollment.js';
-import { Assignment } from './Assignment.js';
-import { Achievement } from './Achievement.js';
-import { Certificate } from './Certificate.js';
-import { Review } from '../reviews/Review.js';
-import { WishlistItem } from '../wishlist/WishlistItem.js';
+import { EntitySchema } from 'typeorm';
 
 export const CourseStatus = {
   DRAFT: 'draft',
@@ -20,123 +12,211 @@ export const CourseLevel = {
   ADVANCED: 'advanced',
 };
 
-@Entity('courses')
+export const CourseSchema = new EntitySchema({
+  name: 'Course',
+  tableName: 'courses',
+  columns: {
+    id: {
+      type: 'uuid',
+      primary: true,
+      generated: 'uuid'
+    },
+    title: {
+      type: 'varchar',
+      length: 200
+    },
+    description: {
+      type: 'text'
+    },
+    shortDescription: {
+      type: 'text',
+      nullable: true
+    },
+    price: {
+      type: 'decimal',
+      precision: 10,
+      scale: 2
+    },
+    originalPrice: {
+      type: 'decimal',
+      precision: 10,
+      scale: 2,
+      nullable: true
+    },
+    status: {
+      type: 'varchar',
+      length: 50,
+      default: CourseStatus.DRAFT
+    },
+    level: {
+      type: 'varchar',
+      length: 50,
+      default: CourseLevel.BEGINNER
+    },
+    thumbnail: {
+      type: 'varchar',
+      length: 500,
+      nullable: true
+    },
+    images: {
+      type: 'json',
+      nullable: true
+    },
+    videos: {
+      type: 'json',
+      nullable: true
+    },
+    documents: {
+      type: 'json',
+      nullable: true
+    },
+    curriculum: {
+      type: 'json',
+      nullable: true
+    },
+    duration: {
+      type: 'int',
+      default: 0
+    },
+    lessons: {
+      type: 'int',
+      default: 0
+    },
+    enrollments: {
+      type: 'int',
+      default: 0
+    },
+    rating: {
+      type: 'decimal',
+      precision: 3,
+      scale: 2,
+      default: 0
+    },
+    reviewCount: {
+      type: 'int',
+      default: 0
+    },
+    requirements: {
+      type: 'json',
+      nullable: true
+    },
+    learningOutcomes: {
+      type: 'json',
+      nullable: true
+    },
+    tags: {
+      type: 'json',
+      nullable: true
+    },
+    slug: {
+      type: 'varchar',
+      length: 200,
+      nullable: true
+    },
+    isActive: {
+      type: 'boolean',
+      default: true
+    },
+    isFeatured: {
+      type: 'boolean',
+      default: false
+    },
+    publishedAt: {
+      type: 'timestamp',
+      nullable: true
+    },
+    createdAt: {
+      type: 'timestamp',
+      createDate: true
+    },
+    updatedAt: {
+      type: 'timestamp',
+      updateDate: true
+    },
+    instructorId: {
+      type: 'uuid'
+    },
+    categoryId: {
+      type: 'uuid'
+    }
+  },
+  relations: {
+    instructor: {
+      target: 'User',
+      type: 'many-to-one',
+      joinColumn: { name: 'instructorId' }
+    },
+    category: {
+      target: 'Category',
+      type: 'many-to-one',
+      joinColumn: { name: 'categoryId' }
+    },
+    courseEnrollments: {
+      target: 'Enrollment',
+      type: 'one-to-many',
+      inverseSide: 'course'
+    },
+    assignments: {
+      target: 'Assignment',
+      type: 'one-to-many',
+      inverseSide: 'course'
+    },
+    achievements: {
+      target: 'Achievement',
+      type: 'one-to-many',
+      inverseSide: 'course'
+    },
+    certificates: {
+      target: 'Certificate',
+      type: 'one-to-many',
+      inverseSide: 'course'
+    },
+    reviews: {
+      target: 'Review',
+      type: 'one-to-many',
+      inverseSide: 'course'
+    },
+    wishlistItems: {
+      target: 'WishlistItem',
+      type: 'one-to-many',
+      inverseSide: 'course'
+    }
+  }
+});
+
 export class Course {
-  @PrimaryGeneratedColumn('uuid')
-  id;
+  constructor() {
+    this.id = null;
+    this.title = '';
+    this.description = '';
+    this.shortDescription = null;
+    this.price = 0;
+    this.originalPrice = null;
+    this.status = CourseStatus.DRAFT;
+    this.level = CourseLevel.BEGINNER;
+    this.thumbnail = null;
+    this.images = null;
+    this.videos = null;
+    this.documents = null;
+    this.curriculum = null;
+    this.duration = 0;
+    this.lessons = 0;
+    this.enrollments = 0;
+    this.rating = 0;
+    this.reviewCount = 0;
+    this.requirements = null;
+    this.learningOutcomes = null;
+    this.tags = null;
+    this.slug = null;
+    this.isActive = true;
+    this.isFeatured = false;
+    this.publishedAt = null;
+    this.createdAt = null;
+    this.updatedAt = null;
+    this.instructorId = null;
+    this.categoryId = null;
+  }
 
-  @Column({ type: 'varchar', length: 200 })
-  title;
-
-  @Column({ type: 'text' })
-  description;
-
-  @Column({ type: 'text', nullable: true })
-  shortDescription;
-
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
-  price;
-
-  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
-  originalPrice;
-
-  @Column({ type: 'varchar', length: 50, default: CourseStatus.DRAFT })
-  status;
-
-  @Column({ type: 'varchar', length: 50, default: CourseLevel.BEGINNER })
-  level;
-
-  @Column({ type: 'varchar', length: 500, nullable: true })
-  thumbnail;
-
-  @Column({ type: 'json', nullable: true })
-  images;
-
-  @Column({ type: 'json', nullable: true })
-  videos;
-
-  @Column({ type: 'json', nullable: true })
-  documents;
-
-  @Column({ type: 'json', nullable: true })
-  curriculum;
-
-  @Column({ type: 'int', default: 0 })
-  duration; // in minutes
-
-  @Column({ type: 'int', default: 0 })
-  lessons;
-
-  @Column({ type: 'int', default: 0 })
-  enrollments;
-
-  @Column({ type: 'decimal', precision: 3, scale: 2, default: 0 })
-  rating;
-
-  @Column({ type: 'int', default: 0 })
-  reviewCount;
-
-  @Column({ type: 'json', nullable: true })
-  requirements;
-
-  @Column({ type: 'json', nullable: true })
-  learningOutcomes;
-
-  @Column({ type: 'json', nullable: true })
-  tags;
-
-  @Column({ type: 'varchar', length: 200, nullable: true })
-  slug;
-
-  @Column({ type: 'boolean', default: true })
-  isActive;
-
-  @Column({ type: 'boolean', default: false })
-  isFeatured;
-
-  @Column({ type: 'timestamp', nullable: true })
-  publishedAt;
-
-  @CreateDateColumn()
-  createdAt;
-
-  @UpdateDateColumn()
-  updatedAt;
-
-  // Relations
-  @ManyToOne(() => User, user => user.courses)
-  @JoinColumn({ name: 'instructorId' })
-  instructor;
-
-  @Column({ type: 'uuid' })
-  instructorId;
-
-  @ManyToOne(() => Category, category => category.courses)
-  @JoinColumn({ name: 'categoryId' })
-  category;
-
-  @Column({ type: 'uuid' })
-  categoryId;
-
-  @OneToMany(() => Enrollment, enrollment => enrollment.course)
-  courseEnrollments;
-
-  @OneToMany(() => Assignment, assignment => assignment.course)
-  assignments;
-
-  @OneToMany(() => Achievement, achievement => achievement.course)
-  achievements;
-
-  @OneToMany(() => Certificate, certificate => certificate.course)
-  certificates;
-
-  @OneToMany(() => Review, review => review.course)
-  reviews;
-
-  @OneToMany(() => WishlistItem, wishlistItem => wishlistItem.course)
-  wishlistItems;
-
-  // Methods
   getDiscountPercentage() {
     if (this.originalPrice && this.originalPrice > this.price) {
       return Math.round(((this.originalPrice - this.price) / this.originalPrice) * 100);

@@ -25,3 +25,6 @@ router.put('/submissions/:submissionId/grade', requireRole(['trainer', 'admin'])
 router.get('/courses/:courseId/analytics', validateUUID, requireRole(['trainer', 'admin']), assignmentController.getAssignmentAnalytics);
 
 export default router;
+
+
+

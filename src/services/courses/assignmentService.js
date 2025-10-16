@@ -251,3 +251,6 @@ export class AssignmentService {
     return Math.round((correct / questions.length) * 100);
   }
 }
+
+
+

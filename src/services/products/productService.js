@@ -1,14 +1,14 @@
 import { AppDataSource } from '../../config/database.js';
-import { Product, ProductStatus } from '../../entities/products/Product.js';
-import { Category } from '../../entities/products/Category.js';
-import { User } from '../../entities/auth/User.js';
+import { ProductSchema, ProductStatus } from '../../entities/products/Product.js';
+import { CategorySchema } from '../../entities/products/Category.js';
+import { UserSchema } from '../../entities/auth/User.js';
 import { AppError } from '../../middleware/error/errorHandler.js';
 
 export class ProductService {
   constructor() {
-    this.productRepository = AppDataSource.getRepository(Product);
-    this.categoryRepository = AppDataSource.getRepository(Category);
-    this.userRepository = AppDataSource.getRepository(User);
+    this.productRepository = AppDataSource.getRepository(ProductSchema);
+    this.categoryRepository = AppDataSource.getRepository(CategorySchema);
+    this.userRepository = AppDataSource.getRepository(UserSchema);
   }
 
   async createProduct(productData, artisanId) {
@@ -284,3 +284,5 @@ export class ProductService {
     return await this.productRepository.save(product);
   }
 }
+
+

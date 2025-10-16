@@ -2,7 +2,7 @@ import multer from 'multer';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { configs } from '../../config/index.js';
-import { CloudinaryService } from './cloudinaryService.js';
+import { CloudinaryService } from '../cloudinary/cloudinaryService.js';
 import { AppError } from '../../middleware/error/errorHandler.js';
 
 // Configure storage for temporary files
@@ -77,6 +77,9 @@ export const uploadCourseImages = upload.array('courseImages', 5);
 export const uploadCourseThumbnail = upload.single('courseThumbnail');
 export const uploadCourseVideos = upload.array('courseVideos', 10);
 export const uploadCourseDocuments = upload.array('courseDocuments', 10);
+
+// Generic media file upload for content management
+export const uploadMediaFile = upload.array('mediaFiles', 10);
 
 export class FileUploadService {
   static async uploadFileToCloudinary(file, type, folder, transformations = {}) {

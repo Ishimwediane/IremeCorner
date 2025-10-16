@@ -32,3 +32,6 @@ router.post('/share', wishlistController.shareWishlist);
 router.get('/shared/:shareToken', wishlistController.getSharedWishlist);
 
 export default router;
+
+
+

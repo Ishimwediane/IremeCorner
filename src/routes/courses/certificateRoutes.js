@@ -25,3 +25,6 @@ router.post('/issue', requireRole(['admin']), certificateController.issueCertifi
 router.put('/:certificateId/revoke', validateUUID, requireRole(['admin']), certificateController.revokeCertificate);
 
 export default router;
+
+
+
