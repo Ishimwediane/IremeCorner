@@ -42,3 +42,4 @@ export class SystemSetting {
     // TODO: Initialize other properties
   }
 }
+

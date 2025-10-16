@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 import { AppDataSource } from '../../config/database.js';
 import { UserSchema, UserRole } from '../../entities/auth/User.js';
 import { configs } from '../../config/index.js';
@@ -18,10 +19,13 @@ export class AuthService {
       throw new AppError('User with this email already exists', 409);
     }
 
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 12);
+
     // Create new user
     const user = this.userRepository.create({
       email,
-      password,
+      password: hashedPassword,
       firstName,
       lastName,
       role
@@ -46,8 +50,8 @@ export class AuthService {
       throw new AppError('Account is deactivated', 401);
     }
 
-    // Check password
-    const isPasswordValid = await user.comparePassword(password);
+    // Check password using bcrypt directly
+    const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       throw new AppError('Invalid email or password', 401);
     }
@@ -123,12 +127,13 @@ export class AuthService {
       throw new AppError('User not found', 404);
     }
 
-    const isCurrentPasswordValid = await user.comparePassword(currentPassword);
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
     if (!isCurrentPasswordValid) {
       throw new AppError('Current password is incorrect', 400);
     }
 
-    user.password = newPassword;
+    const hashedNewPassword = await bcrypt.hash(newPassword, 12);
+    user.password = hashedNewPassword;
     await this.userRepository.save(user);
     return { message: 'Password changed successfully' };
   }
@@ -161,7 +166,8 @@ export class AuthService {
         throw new AppError('Invalid reset token', 400);
       }
 
-      user.password = newPassword;
+      const hashedPassword = await bcrypt.hash(newPassword, 12);
+      user.password = hashedPassword;
       await this.userRepository.save(user);
       return { message: 'Password reset successfully' };
     } catch (error) {

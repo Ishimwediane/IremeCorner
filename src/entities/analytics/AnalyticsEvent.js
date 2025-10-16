@@ -44,3 +44,4 @@ export class AnalyticsEvent {
     // TODO: Initialize other properties
   }
 }
+

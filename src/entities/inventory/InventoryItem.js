@@ -38,3 +38,4 @@ export class InventoryItem {
     // TODO: Initialize other properties
   }
 }
+

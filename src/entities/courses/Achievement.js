@@ -31,3 +31,4 @@ export class Achievement {
     // TODO: Initialize other properties
   }
 }
+

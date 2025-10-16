@@ -75,7 +75,7 @@ export const validateUserUpdate = [
   
   body('phone')
     .optional()
-    .isMobilePhone()
+    .isLength({ min: 10, max: 15 })
     .withMessage('Please provide a valid phone number'),
   
   body('bio')

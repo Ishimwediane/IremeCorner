@@ -28,3 +28,4 @@ export class Comment {
     // TODO: Initialize other properties
   }
 }
+

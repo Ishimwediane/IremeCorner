@@ -118,3 +118,4 @@ console.log('Starting bulk entity conversion...');
 entityFiles.forEach(convertEntityFile);
 console.log('Bulk entity conversion completed!');
 console.log('Note: You may need to manually add column and relation definitions to the schemas.');
+

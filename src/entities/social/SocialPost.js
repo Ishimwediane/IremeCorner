@@ -38,3 +38,4 @@ export class SocialPost {
     // TODO: Initialize other properties
   }
 }
+

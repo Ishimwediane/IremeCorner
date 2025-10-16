@@ -35,3 +35,4 @@ export class Message {
     // TODO: Initialize other properties
   }
 }
+

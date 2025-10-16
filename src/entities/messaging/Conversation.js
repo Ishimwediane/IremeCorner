@@ -33,3 +33,4 @@ export class Conversation {
     // TODO: Initialize other properties
   }
 }
+

@@ -34,3 +34,4 @@ export class Store {
     // TODO: Initialize other properties
   }
 }
+

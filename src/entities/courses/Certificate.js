@@ -28,3 +28,4 @@ export class Certificate {
     // TODO: Initialize other properties
   }
 }
+

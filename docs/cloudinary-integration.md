@@ -279,3 +279,4 @@ const response = await fetch(`/api/courses/${courseId}/images`, {
 
 
 
+

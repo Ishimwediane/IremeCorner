@@ -35,3 +35,4 @@ export class Review {
     // TODO: Initialize other properties
   }
 }
+

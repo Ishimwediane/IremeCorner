@@ -29,3 +29,4 @@ export class Assignment {
     // TODO: Initialize other properties
   }
 }
+

@@ -28,3 +28,4 @@ export class Follow {
     // TODO: Initialize other properties
   }
 }
+

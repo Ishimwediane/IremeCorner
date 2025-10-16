@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { AppDataSource } from '../../config/database.js';
-import { User } from '../../entities/auth/User.js';
+import { UserSchema } from '../../entities/auth/User.js';
 import { configs } from '../../config/index.js';
 
 export const authenticateToken = async (req, res, next) => {
@@ -16,7 +16,7 @@ export const authenticateToken = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, configs.jwt.secret);
-    const userRepository = AppDataSource.getRepository(User);
+    const userRepository = AppDataSource.getRepository(UserSchema);
     const user = await userRepository.findOne({ 
       where: { id: decoded.userId },
       select: ['id', 'email', 'firstName', 'lastName', 'role', 'isActive', 'isEmailVerified']
@@ -106,7 +106,7 @@ export const optionalAuth = async (req, res, next) => {
 
     if (token) {
       const decoded = jwt.verify(token, configs.jwt.secret);
-      const userRepository = AppDataSource.getRepository(User);
+      const userRepository = AppDataSource.getRepository(UserSchema);
       const user = await userRepository.findOne({ 
         where: { id: decoded.userId },
         select: ['id', 'email', 'firstName', 'lastName', 'role', 'isActive', 'isEmailVerified']

@@ -46,3 +46,4 @@ export class Promotion {
     // TODO: Initialize other properties
   }
 }
+

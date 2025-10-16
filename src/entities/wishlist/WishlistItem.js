@@ -27,3 +27,4 @@ export class WishlistItem {
     // TODO: Initialize other properties
   }
 }
+

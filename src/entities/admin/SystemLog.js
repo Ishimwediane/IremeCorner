@@ -42,3 +42,4 @@ export class SystemLog {
     // TODO: Initialize other properties
   }
 }
+

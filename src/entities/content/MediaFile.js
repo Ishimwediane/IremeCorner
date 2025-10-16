@@ -37,3 +37,4 @@ export class MediaFile {
     // TODO: Initialize other properties
   }
 }
+
