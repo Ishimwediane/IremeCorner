@@ -284,7 +284,7 @@ const ShopPage = () => {
           <section className="bg-gradient-to-r from-orange-200 to-orange-300 rounded-lg shadow-lg p-8 mb-12 transform hover:scale-[1.02] transition-transform">
             <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">Shop with us</h1>
             <p className="text-lg text-gray-700 max-w-3xl">
-              Discover unique handmade products directly from Rwandan villages. Support local makers, buy authentic craftmanship
+Discover authentic Rwandan crafts while supporting local artisans. Every purchase preserves cultural heritage and creates sustainable livelihoods
             </p>
           </section>
 

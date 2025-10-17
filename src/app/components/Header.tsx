@@ -6,7 +6,7 @@ const Header = () => {
     <header className="relative  bg-[#202f32] shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className="flex items-center justify-between">
-          {/* Logo */}
+          {/* Logo */} 
            <div className="flex items-top">
           {/* <img 
             src="/images/log2.png"  // Make sure this is the transparent version
@@ -32,7 +32,7 @@ const Header = () => {
           {/* Register Button */}
            <a href="/login">
           <button className="bg-orange-300 hover:bg-orange-400 text-gray-800 px-6 py-2 rounded-md font-medium transition-colors">
-            Register/Login
+            Register/Login 
           </button>
           </a>
         </div>

@@ -15,7 +15,8 @@ const LoginPage = () => {
     name: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    role: 'customer' // default role
   });
 
   const handleLoginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -25,7 +26,7 @@ const LoginPage = () => {
     });
   };
 
-  const handleRegisterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleRegisterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setRegisterData({
       ...registerData,
       [e.target.name]: e.target.value
@@ -35,11 +36,41 @@ const LoginPage = () => {
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     console.log('Login:', loginData);
+    
+    // Simulate role-based redirect (replace with actual authentication logic)
+    // For demo purposes, checking email for role keywords
+    const userRole = loginData.email.includes('admin') ? 'admin' : 
+                     loginData.email.includes('artisan') ? 'artisan' : 'learner';
+    
+    // Redirect based on role
+    if (userRole === 'admin') {
+      window.location.href = '/admin-dashboard';
+    } else if (userRole === 'artisan') {
+      window.location.href = '/artisan-dashboard';
+    } else {
+      window.location.href = '/learner-dashboard';
+    }
   };
 
   const handleRegisterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Password validation
+    if (registerData.password !== registerData.confirmPassword) {
+      alert('Passwords do not match!');
+      return;
+    }
+    
     console.log('Register:', registerData);
+    
+    // Redirect based on selected role
+    if (registerData.role === 'admin') {
+      window.location.href = '/admin-dashboard';
+    } else if (registerData.role === 'artisan') {
+      window.location.href = '/artisan-dashboard';
+    } else {
+      window.location.href = '/learner-dashboard';
+    }
   };
 
   const toggleMode = () => {
@@ -125,7 +156,7 @@ const LoginPage = () => {
                   </button>
 
                   <div className="text-center mt-4">
-                    <a href="#" className="text-bg-[#C39766] hover:text-orange-600 text-sm">
+                    <a href="#" className="text-[#C39766] hover:text-orange-600 text-sm">
                       Forgot Password?
                     </a>
                   </div>
@@ -143,8 +174,8 @@ const LoginPage = () => {
 
                 <form onSubmit={handleRegisterSubmit} className="space-y-4">
                   <div>
-                     <label className="block text-gray-700 mb-2 font-medium">
-                     name
+                    <label className="block text-gray-700 mb-2 font-medium">
+                      Name
                     </label>
                     <input
                       type="text"
@@ -156,11 +187,11 @@ const LoginPage = () => {
                       required
                     />
                   </div>
-                   <label className="block text-gray-700 mb-2 font-medium">
-                     Email
-                    </label>
 
                   <div>
+                    <label className="block text-gray-700 mb-2 font-medium">
+                      Email
+                    </label>
                     <input
                       type="email"
                       name="email"
@@ -173,7 +204,25 @@ const LoginPage = () => {
                   </div>
 
                   <div>
-                     <label className="block text-gray-700 mb-2 font-medium">
+                    <label className="block text-gray-700 mb-2 font-medium">
+                      Register As
+                    </label>
+                    <select
+                      name="role"
+                      value={registerData.role}
+                      onChange={handleRegisterChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent bg-white"
+                      required
+                    >
+                      <option value="customer">Customer</option>
+                      <option value="learner">Learner (Training)</option>
+                      <option value="artisan">Artisan (Seller)</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 mb-2 font-medium">
                       Password
                     </label>
                     <input
@@ -189,7 +238,7 @@ const LoginPage = () => {
 
                   <div>
                     <label className="block text-gray-700 mb-2 font-medium">
-                     Confirm  Password
+                      Confirm Password
                     </label>
                     <input
                       type="password"
