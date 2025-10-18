@@ -9,6 +9,7 @@ import { initializeDatabase } from './config/database.js';
 import { configs } from './config/index.js';
 import { generalLimiter } from './middleware/rateLimit/rateLimit.js';
 import { errorHandler, notFoundHandler } from './middleware/error/errorHandler.js';
+import { specs, swaggerUi } from './config/swagger.js';
 
 // Import routes
 import authRoutes from './routes/auth/authRoutes.js';
@@ -75,6 +76,13 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Swagger API Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, {
+  explorer: true,
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'IremeCorner API Documentation'
+}));
+
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
@@ -123,7 +131,7 @@ app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📊 Environment: ${configs.nodeEnv}`);
   console.log(`🔗 Health check: http://localhost:${PORT}/health`);
-  console.log(`📚 API Documentation: http://localhost:${PORT}/api`);
+  console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
 });
 
 export default app;
