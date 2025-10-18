@@ -9,8 +9,8 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// Read the swagger.json file
-const swaggerDocument = JSON.parse(fs.readFileSync(path.join(__dirname, 'swagger.json'), 'utf8'));
+// Read the swagger.json file from the root directory
+const swaggerDocument = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'swagger.json'), 'utf8'));
 
 // Serve static files
 app.use(express.static('public'));
