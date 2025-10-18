@@ -83,6 +83,12 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, {
   customSiteTitle: 'IremeCorner API Documentation'
 }));
 
+// Serve Swagger JSON
+app.get('/swagger.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.json(specs);
+});
+
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
