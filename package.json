@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node swagger-server.js",
     "dev": "node swagger-server.js",
-    "build": "echo 'No build step required for documentation server'",
+    "build": "npm install --only=production",
     "export": "node export-swagger.js"
   },
   "keywords": [

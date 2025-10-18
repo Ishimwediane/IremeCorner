@@ -2,7 +2,7 @@ services:
   - type: web
     name: iremecorner-api-docs
     env: node
-    buildCommand: echo "No build required for documentation server"
+    buildCommand: npm install --only=production
     startCommand: node swagger-server.js
     healthCheckPath: /health
     envVars:
@@ -11,5 +11,5 @@ services:
       - key: PORT
         value: 10000
     autoDeploy: true
-    branch: main
+    branch: backend
     rootDir: server
