@@ -7,6 +7,34 @@ import { body, validationResult } from 'express-validator';
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     CategoryRequest:
+ *       type: object
+ *       required:
+ *         - name
+ *         - type
+ *       properties:
+ *         name:
+ *           type: string
+ *           minLength: 2
+ *           maxLength: 100
+ *           description: Category name
+ *           example: Electronics
+ *         description:
+ *           type: string
+ *           maxLength: 500
+ *           description: Category description
+ *           example: Electronic devices and accessories
+ *         type:
+ *           type: string
+ *           enum: [product, course]
+ *           description: Category type
+ *           example: product
+ */
+
 // Validation middleware
 const validateCategoryCreation = [
   body('name')
@@ -41,7 +69,35 @@ const validateCategoryCreation = [
   }
 ];
 
-// Get all categories
+/**
+ * @swagger
+ * /categories:
+ *   get:
+ *     summary: Get all categories
+ *     tags: [Categories]
+ *     parameters:
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [product, course]
+ *         description: Filter by category type
+ *     responses:
+ *       200:
+ *         description: Categories retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Category'
+ */
 router.get('/', asyncHandler(async (req, res) => {
   const categoryRepository = AppDataSource.getRepository(CategorySchema);
   const { type } = req.query;
@@ -58,7 +114,36 @@ router.get('/', asyncHandler(async (req, res) => {
   });
 }));
 
-// Get category by ID
+/**
+ * @swagger
+ * /categories/{id}:
+ *   get:
+ *     summary: Get category by ID
+ *     tags: [Categories]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Category ID
+ *     responses:
+ *       200:
+ *         description: Category retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/Category'
+ *       404:
+ *         description: Category not found
+ */
 router.get('/:id', asyncHandler(async (req, res) => {
   const categoryRepository = AppDataSource.getRepository(CategorySchema);
   const category = await categoryRepository.findOne({
@@ -78,7 +163,45 @@ router.get('/:id', asyncHandler(async (req, res) => {
   });
 }));
 
-// Create category (Admin only)
+/**
+ * @swagger
+ * /categories:
+ *   post:
+ *     summary: Create a new category (Admin only)
+ *     tags: [Categories]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CategoryRequest'
+ *     responses:
+ *       201:
+ *         description: Category created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Category created successfully
+ *                 data:
+ *                   $ref: '#/components/schemas/Category'
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Admin role required
+ *       409:
+ *         description: Category already exists
+ */
 router.post('/', authenticateToken, requireRole('admin'), validateCategoryCreation, asyncHandler(async (req, res) => {
   const categoryRepository = AppDataSource.getRepository(CategorySchema);
   
