@@ -1,0 +1,26 @@
+# Render Configuration for Swagger Documentation
+
+# Build Command
+buildCommand: echo "No build required for documentation server"
+
+# Start Command  
+startCommand: node swagger-server.js
+
+# Environment Variables
+envVars:
+  - key: NODE_ENV
+    value: production
+  - key: PORT
+    value: 10000
+
+# Health Check Path
+healthCheckPath: /health
+
+# Auto Deploy
+autoDeploy: true
+
+# Branch
+branch: main
+
+# Root Directory
+rootDir: server
