@@ -87,7 +87,7 @@ const DonatePage = () => {
                         onClick={() => setDonationType(type)}
                         className={`flex-1 py-2 px-4 rounded-lg border-2 transition-all duration-300 ${
                           donationType === type
-                            ? 'border-orange-030 bg-orange-50 text-orange-500 font-semibold'
+                            ? 'border-orange-030 bg-orange-50 text-orange-300 font-semibold'
                             : 'border-gray-300 text-gray-600 hover:border-orange-300'
                         }`}
                       >
@@ -147,7 +147,7 @@ const DonatePage = () => {
                 {/* Donor Information */}
                 <div className="space-y-4 mb-6">
                   <div>
-                    <label className="block text-gray-700 font-semibold mb-2">Full Name</label>
+                    <label className="block text-black font-semibold mb-2">Full Name</label>
                     <input
                       type="text"
                       name="name"

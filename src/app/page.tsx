@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { MessageCircle, X } from 'lucide-react';
 import Header from './components/Header';
 import Footer from './components/Footer';
+import WhatsAppFloat from './components/WhatsAppFloat';
 
 const HomePage = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -41,12 +43,11 @@ const HomePage = () => {
   ];
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
+    <div className=" min-h-screen relative overflow-hidden">
       {/* Background overlay */}
       <div className="fixed inset-0 bg-white -z-10" style={{ opacity: 0.7 }} />
 
-      <Header />
-
+       <Header  />
       {/* Hero Section */}
       <section 
         className="relative min-h-screen flex items-center justify-center py-20 px-4"
@@ -60,7 +61,7 @@ const HomePage = () => {
         {/* Dark overlay for better text readability */}
         <div className="absolute inset-0  bg-opacity-50"></div>
         
-        <div className={`relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center transition-all duration-1000 transform ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+        <div className={`relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center transition-all duration-500 transform ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
            <h2 className="text-3xl md:text-5xl lg:text-6xl font-bold text-black mb-6 leading-tight">
             Welcome to IremeCorner
           </h2>
@@ -312,6 +313,23 @@ const HomePage = () => {
           </div>
         </div>
       </section>
+      <section className='py-16 bg-white'>
+        <h3 className='text-3xl md:text-4xl font-bold text-center text-orange-300 mb-12'>Products</h3>
+        <div>
+          <div>
+            <img 
+                  src="images/kub.jpeg" 
+                  alt="Training" 
+                  className="w-full h-96 object-cover"
+                />
+          </div>
+          <div>caption</div>
+        </div>
+ <a href="/shop">
+              <button className="bg-orange-300 hover:bg-orange-400 text-white px-8 py-4 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-xl">
+             More
+              </button></a>
+      </section>
 
       {/* Testimonials Section - NEW */}
       <section className="py-16 bg-white">
@@ -382,6 +400,7 @@ const HomePage = () => {
           </div>
         </div>
       </section>
+       <WhatsAppFloat />
 
       <Footer />
     </div>

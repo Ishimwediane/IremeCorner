@@ -38,13 +38,16 @@ const Header = () => {
         </div>
 
         {/* Navigation */}
-        <nav className="mt-4 ml-200">
+        <nav className="mt-4 ml-180">
           <div className=" bg-opacity-90 rounded-lg px-6 py-3 inline-flex space-x-8">
             <a href="/" className="text-white hover:text-orange-600 font-medium transition-colors">Home</a>
             <a href="/about" className="text-whit hover:text-orange-600 font-medium transition-colors">About us</a>
             <a href="/shop" className="text-white hover:text-orange-600 font-medium transition-colors">Shop Now</a>
+            <a href="/community" className="text-white hover:text-orange-600 font-medium transition-colors">Community</a>
             <a href="/donate" className="text-white hover:text-orange-600 font-medium transition-colors">Donate</a>
-          </div>
+            
+
+            </div>
         </nav>
       </div>
     </header>

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import WhatsAppFloat from '../components/WhatsAppFloat';
 import { Search, ShoppingCart, X, Plus, Minus } from 'lucide-react';
 
 // Extended product data
@@ -183,7 +184,7 @@ const ShopPage = () => {
       {/* Cart Button */}
       <button
         onClick={() => setIsCartOpen(true)}
-        className="fixed top-24 right-4 bg-orange-400 hover:bg-orange-500 text-white p-4 rounded-full shadow-lg z-40 transition-all transform hover:scale-110"
+        className="fixed top-24 right-4 bg-orange-300 hover:bg-orange-400 text-white p-4 rounded-full shadow-lg z-40 transition-all transform hover:scale-110"
       >
         <ShoppingCart className="w-6 h-6" />
         {cartItemCount > 0 && (
@@ -374,7 +375,7 @@ Discover authentic Rwandan crafts while supporting local artisans. Every purchas
                         </button>
                         <button
                           onClick={() => buyNow(product)}
-                          className="flex-1 bg-orange-400 hover:bg-orange-500 text-white px-4 py-2 rounded-md font-medium transition-colors"
+                          className="flex-1 bg-orange-300 hover:bg-orange-400 text-white px-4 py-2 rounded-md font-medium transition-colors"
                         >
                           Buy Now
                         </button>
@@ -407,7 +408,7 @@ Discover authentic Rwandan crafts while supporting local artisans. Every purchas
 
         </div>
       </main>
-
+    <WhatsAppFloat/>
       <Footer />
     </div>
   );

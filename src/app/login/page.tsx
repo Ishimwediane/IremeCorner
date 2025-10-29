@@ -12,11 +12,14 @@ const LoginPage = () => {
   });
 
   const [registerData, setRegisterData] = useState({
-    name: '',
+    firstName: '',
+    lastName:'' ,
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'customer' // default role
+    role: 'customer' ,// default role
+    phone:''
+
   });
 
   const handleLoginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -40,7 +43,7 @@ const LoginPage = () => {
     // Simulate role-based redirect (replace with actual authentication logic)
     // For demo purposes, checking email for role keywords
     const userRole = loginData.email.includes('admin') ? 'admin' : 
-                     loginData.email.includes('artisan') ? 'artisan' : 'learner';
+                     loginData.email.includes('artisan') ? 'artisan' : 'learner' ;
     
     // Redirect based on role
     if (userRole === 'admin') {
@@ -67,6 +70,8 @@ const LoginPage = () => {
     if (registerData.role === 'admin') {
       window.location.href = '/admin-dashboard';
     } else if (registerData.role === 'artisan') {
+      window.location.href = '/artisan-dashboard';
+    } else if (registerData.role === 'trainer') {
       window.location.href = '/artisan-dashboard';
     } else {
       window.location.href = '/learner-dashboard';
@@ -103,14 +108,15 @@ const LoginPage = () => {
           </h1>
 
           {/* Animated Container */}
-          <div className="relative bg-white rounded-2xl shadow-2xl overflow-hidden h-[600px] grid grid-cols-1 md:grid-cols-2">
+          <div className="relative bg-white rounded-2xl shadow-2xl overflow-hidden min-h-[650px] grid grid-cols-1 md:grid-cols-2">
+            
             
             {/* Left Column - Forms */}
             <div className="relative overflow-hidden">
               
               {/* Login Form */}
               <div 
-                className={`absolute inset-0 p-8 md:p-12 flex flex-col justify-center transition-all duration-700 ease-in-out ${
+                className={`absolute inset-0 p-6 md:p-8 flex flex-col justify-center transition-all duration-700 ease-in-out ${
                   isLogin ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0'
                 }`}
               >
@@ -165,23 +171,37 @@ const LoginPage = () => {
 
               {/* Register Form */}
               <div 
-                className={`absolute inset-0 p-8 md:p-12 flex flex-col justify-center transition-all duration-700 ease-in-out ${
+                className={`absolute inset-0 p-6 md:p-8 flex flex-col justify-center transition-all duration-700 ease-in-out ${
                   !isLogin ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
                 }`}
               >
                 <h2 className="text-3xl font-bold text-gray-800 mb-2">Create Account</h2>
                 <p className="text-gray-600 mb-6">Register to get started</p>
 
-                <form onSubmit={handleRegisterSubmit} className="space-y-4">
+                <form onSubmit={handleRegisterSubmit} className="">
                   <div>
                     <label className="block text-gray-700 mb-2 font-medium">
-                      Name
+                      FirstName
+                    </label>
+                    <input
+                      type="text"
+                      name="firstname"
+                      placeholder="Enter firstname"
+                      value={registerData.firstName}
+                      onChange={handleRegisterChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-gray-700 mb-2 font-medium">
+                      LastName
                     </label>
                     <input
                       type="text"
                       name="name"
-                      placeholder="Full Name"
-                      value={registerData.name}
+                      placeholder="Enter lastname"
+                      value={registerData.lastName}
                       onChange={handleRegisterChange}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
                       required
@@ -204,7 +224,7 @@ const LoginPage = () => {
                   </div>
 
                   <div>
-                    <label className="block text-gray-700 mb-2 font-medium">
+                    <label className="block text-gray-700 mb-2 ">
                       Register As
                     </label>
                     <select
@@ -214,7 +234,7 @@ const LoginPage = () => {
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent bg-white"
                       required
                     >
-                      <option value="customer">Customer</option>
+                      <option value="trainer">trainer</option>
                       <option value="learner">Learner (Training)</option>
                       <option value="artisan">Artisan (Seller)</option>
                       <option value="admin">Admin</option>

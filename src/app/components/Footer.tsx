@@ -3,9 +3,13 @@ import { Instagram, Facebook, Mail } from 'lucide-react';
 
 const Footer = () => {
   return (
-    <footer className="relative bg-black text-white py-12">
+    <footer className=" relative bg-black text-white py-12  ">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-4 gap-8">
+          <div>
+           <h1 className="text-2xl md:text-3xl font-bold text-orange-300 italic mb-5">IremeCorner</h1>
+           <p >Your gateway to authentic Rwandan crafts. Shop handmade, learn traditions, support artisans.</p>
+          </div>
           {/* Quick Links */}
           <div>
             <h4 className="text-xl font-semibold mb-4">Quick links</h4>
