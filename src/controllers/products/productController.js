@@ -7,7 +7,20 @@ export class ProductController {
   }
 
   createProduct = asyncHandler(async (req, res) => {
-    const product = await this.productService.createProduct(req.body, req.user.id);
+    const productData = { ...req.body };
+
+    // Handle uploaded images
+    if (req.files && req.files.length > 0) {
+      // First image becomes mainImage
+      productData.mainImage = `uploads/products/${req.files[0].filename}`;
+      
+      // All images go into images array
+      if (req.files.length > 1) {
+        productData.images = req.files.map(file => `uploads/products/${file.filename}`);
+      }
+    }
+
+    const product = await this.productService.createProduct(productData, req.user.id);
 
     res.status(201).json({
       success: true,
@@ -35,9 +48,19 @@ export class ProductController {
   });
 
   updateProduct = asyncHandler(async (req, res) => {
+    const updateData = { ...req.body };
+
+    // Handle uploaded images on update too
+    if (req.files && req.files.length > 0) {
+      updateData.mainImage = `uploads/products/${req.files[0].filename}`;
+      if (req.files.length > 1) {
+        updateData.images = req.files.map(file => `uploads/products/${file.filename}`);
+      }
+    }
+
     const product = await this.productService.updateProduct(
       req.params.id,
-      req.body,
+      updateData,
       req.user.id
     );
 

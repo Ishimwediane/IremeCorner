@@ -34,7 +34,7 @@ export class ProductService {
       ...productInfo,
       artisanId,
       categoryId,
-      status: ProductStatus.DRAFT
+      status: ProductStatus.ACTIVE
     });
 
     return await this.productRepository.save(product);

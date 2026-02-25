@@ -1,39 +1,54 @@
 {
   "name": "iremecorner-backend",
   "version": "1.0.0",
-  "type": "module",
+  "type": "commonjs",
   "main": "src/index.js",
   "scripts": {
-    "start": "node src/index.js",
-    "dev": "nodemon src/index.js",
+    "start": "babel-node src/index.js",
+    "dev": "nodemon --require @babel/register src/index.js",
     "setup": "node setup.js",
     "build": "echo 'Build completed'",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["handmade-crafts", "training", "ecommerce", "nodejs", "express"],
+  "keywords": [
+    "handmade-crafts",
+    "training",
+    "ecommerce",
+    "nodejs",
+    "express"
+  ],
   "author": "IremeCorner Team",
   "license": "ISC",
   "description": "Backend API for IremeCorner - Handmade Crafts & Training Platform",
   "dependencies": {
-    "express": "^4.18.2",
-    "typeorm": "^0.3.17",
-    "pg": "^8.11.3",
-    "reflect-metadata": "^0.1.13",
     "bcryptjs": "^2.4.3",
-    "jsonwebtoken": "^9.0.2",
+    "compression": "^1.7.4",
     "cors": "^2.8.5",
-    "helmet": "^7.1.0",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
     "express-rate-limit": "^7.1.5",
     "express-validator": "^7.0.1",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
-    "dotenv": "^16.3.1",
-    "nodemailer": "^6.9.7",
-    "uuid": "^9.0.1",
-    "compression": "^1.7.4",
-    "morgan": "^1.10.0"
+    "nodemailer": "^8.0.1",
+    "pg": "^8.11.3",
+    "reflect-metadata": "^0.1.13",
+    "typeorm": "^0.3.20",
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
+    "@babel/core": "^7.29.0",
+    "@babel/node": "^7.29.0",
+    "@babel/plugin-proposal-class-properties": "^7.18.6",
+    "@babel/plugin-proposal-decorators": "^7.29.0",
+    "@babel/preset-env": "^7.29.0",
+    "@babel/preset-typescript": "^7.28.5",
+    "@babel/register": "^7.28.6",
+    "@types/node": "^20.8.10",
+    "babel-plugin-transform-typescript-metadata": "^0.4.0",
     "nodemon": "^3.0.1",
-    "@types/node": "^20.8.10"
+    "typescript": "^5.9.3"
   }
 }

@@ -16,82 +16,97 @@ import productRoutes from './routes/products/productRoutes.js';
 import orderRoutes from './routes/orders/orderRoutes.js';
 import courseRoutes from './routes/courses/courseRoutes.js';
 import paymentRoutes from './routes/payments/paymentRoutes.js';
+import categoryRoutes from './routes/categories/categoryRoutes.js';
 
 const app = express();
 
-// Initialize database
-await initializeDatabase();
+const start = async () => {
+  // Initialize database
+  await initializeDatabase();
 
-// Security middleware
-app.use(helmet());
-app.use(cors({
+  // Security middleware
+  app.use(helmet());
+ app.use(cors({
   origin: configs.cors.origin,
   credentials: true
 }));
-
-// Compression middleware
-app.use(compression());
-
-// Logging middleware
-if (configs.nodeEnv === 'development') {
-  app.use(morgan('dev'));
-} else {
-  app.use(morgan('combined'));
-}
-
-// Rate limiting
-app.use(generalLimiter);
-
-// Body parsing middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// Static files
+ // Static files
+app.use('/uploads', (req, res, next) => {
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  next();
+});
 app.use('/uploads', express.static('uploads'));
+  // Compression middleware
+  app.use(compression());
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({
-    success: true,
-    message: 'IremeCorner API is running',
-    timestamp: new Date().toISOString(),
-    environment: configs.nodeEnv
+  // Logging middleware
+  if (configs.nodeEnv === 'development') {
+    app.use(morgan('dev'));
+  } else {
+    app.use(morgan('combined'));
+  }
+
+  // Rate limiting
+  app.use(generalLimiter);
+
+  // Body parsing middleware
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+ 
+ 
+
+  // Health check endpoint
+  app.get('/health', (req, res) => {
+    res.json({
+      success: true,
+      message: 'IremeCorner API is running',
+      timestamp: new Date().toISOString(),
+      environment: configs.nodeEnv
+    });
   });
-});
 
-// API routes
-app.use('/api/auth', authRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/orders', orderRoutes);
-app.use('/api/courses', courseRoutes);
-app.use('/api/payments', paymentRoutes);
+  // API routes
+  app.use('/api/auth', authRoutes);
+  app.use('/api/products', productRoutes);
+  app.use('/api/orders', orderRoutes);
+  app.use('/api/courses', courseRoutes);
+  app.use('/api/payments', paymentRoutes);
+  app.use('/api/categories', categoryRoutes);
 
-// Admin routes (placeholder for future admin functionality)
-app.get('/api/admin/dashboard', (req, res) => {
-  res.json({
-    success: true,
-    message: 'Admin dashboard endpoint',
-    data: {
-      totalUsers: 0,
-      totalProducts: 0,
-      totalOrders: 0,
-      totalCourses: 0,
-      totalRevenue: 0
-    }
+  // Admin routes
+  app.get('/api/admin/dashboard', (req, res) => {
+    res.json({
+      success: true,
+      message: 'Admin dashboard endpoint',
+      data: {
+        totalUsers: 0,
+        totalProducts: 0,
+        totalOrders: 0,
+        totalCourses: 0,
+        totalRevenue: 0
+      }
+    });
   });
-});
 
-// Error handling middleware
-app.use(notFoundHandler);
-app.use(errorHandler);
+  // Error handling middleware
+  app.use(notFoundHandler);
+  app.use(errorHandler);
 
-// Start server
-const PORT = configs.port;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📊 Environment: ${configs.nodeEnv}`);
-  console.log(`🔗 Health check: http://localhost:${PORT}/health`);
-  console.log(`📚 API Documentation: http://localhost:${PORT}/api`);
+  // Start server
+  const PORT = configs.port;
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📊 Environment: ${configs.nodeEnv}`);
+    console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+    console.log(`📚 API Documentation: http://localhost:${PORT}/api`);
+  });
+};
+
+start().catch(err => {
+  console.error('❌ Failed to start server:', err);
+  process.exit(1);
 });
 
 export default app;
