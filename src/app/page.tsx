@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { MessageCircle, X } from 'lucide-react';
 import Header from './components/Header';
 import Footer from './components/Footer';
+import RecentProducts from './components/RecentProducts';
+
 import WhatsAppFloat from './components/WhatsAppFloat';
 
 const HomePage = () => {
@@ -61,8 +63,8 @@ const HomePage = () => {
         {/* Dark overlay for better text readability */}
         <div className="absolute inset-0  bg-opacity-50"></div>
         
-        <div className={`relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center transition-all duration-500 transform ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-           <h2 className="text-3xl md:text-5xl lg:text-6xl font-bold text-black mb-6 leading-tight">
+        <div className={`relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8  mb-15 text-center transition-all duration-500 transform ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+           <h2 className="text-3xl md:text-5xl lg:text-6xl font-bold text-black mb-8 leading-tight">
             Welcome to IremeCorner
           </h2>
 
@@ -77,12 +79,12 @@ const HomePage = () => {
 
           <div className="flex flex-wrap justify-center gap-10 mt-20 ">
             <a href="/shop">
-              <button className="bg-orange-300 hover:bg-orange-400 text-white px-8 py-4 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-xl">
+              <button className="bg-orange-300 hover:bg-black   text-white px-8 py-4 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-xl">
                 Shop Now
               </button>
             </a>
             <a href="/login">
-              <button className="bg-transparent border-2 border-black text-black hover:bg-orange-400 hover:text-white px-8 py-4 rounded-lg font-semibold transition-all transform hover:scale-105">
+              <button className="bg-transparent border-2 border-black text-black hover:bg-black hover:text-white px-8 py-4 rounded-lg font-semibold transition-all transform hover:scale-105">
                 Sell with US
               </button>
             </a>
@@ -121,7 +123,7 @@ const HomePage = () => {
                 We help talented artisans and creators showcase their unique crafts, connect with buyers, and grow their businesses. Whether you're looking to buy authentic handmade products, sell your own creations, or learn new skills through our training programs, this is the place for you.
               </p>
               <a href="/about">
-                <button className="bg-orange-300 hover:bg-orange-400 text-white px-6 py-3 rounded-md font-medium transition-all transform hover:scale-105">
+                <button className="bg-orange-300 hover:bg-black text-white px-6 py-3 rounded-md font-medium transition-all transform hover:scale-105">
                   Learn More
                 </button>
               </a>
@@ -305,7 +307,7 @@ const HomePage = () => {
             <div className='text-center text-white mt-8'>
               <h3 className="text-xl font-semibold mb-4">Want to start learning with Us?</h3>
               <a href="/login">
-                <button className="bg-orange-300 hover:bg-orange-400 text-white px-8 py-3 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg">
+                <button className="bg-orange-300 hover:bg-black text-white px-8 py-3 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg ">
                   Register here
                 </button>
               </a>
@@ -313,23 +315,7 @@ const HomePage = () => {
           </div>
         </div>
       </section>
-      <section className='py-16 bg-white'>
-        <h3 className='text-3xl md:text-4xl font-bold text-center text-orange-300 mb-12'>Products</h3>
-        <div>
-          <div>
-            <img 
-                  src="images/kub.jpeg" 
-                  alt="Training" 
-                  className="w-full h-96 object-cover"
-                />
-          </div>
-          <div>caption</div>
-        </div>
- <a href="/shop">
-              <button className="bg-orange-300 hover:bg-orange-400 text-white px-8 py-4 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-xl">
-             More
-              </button></a>
-      </section>
+      <RecentProducts />
 
       {/* Testimonials Section - NEW */}
       <section className="py-16 bg-white">

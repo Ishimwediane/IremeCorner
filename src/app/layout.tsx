@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Handmade Rwanda - Village Crafts',
+  title: 'IremeCorner',
   description: 'Supporting handmade products from Rwandan villages',
 };
 

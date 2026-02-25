@@ -15,8 +15,20 @@ const Header = () => {
           
             // Adjust height as needed
           /> */}
-          <h1 className="text-2xl md:text-3xl font-bold text-orange-300 italic">IremeCorner</h1>
-        </div>
+          {/* logo well fit */}
+          <a href="/"
+						className="flex items-center">
+              <img
+  alt="IREME LOGO"
+  width="100"
+  height="40"
+  decoding="async"
+  data-nimg="1"
+  className="h-20 w-auto object-contain "
+  style={{ color: "transparent" }}
+  src="images/log2.png"
+/></a>
+</div>
           {/* Search Bar */}
           <div className="hidden md:flex items-center flex-1 max-w-md mx-8">
             <div className="relative w-full">
@@ -38,13 +50,14 @@ const Header = () => {
         </div>
 
         {/* Navigation */}
-        <nav className="mt-4 ml-180">
+        <nav className="mt-4 ml-150">
           <div className=" bg-opacity-90 rounded-lg px-6 py-3 inline-flex space-x-8">
-            <a href="/" className="text-white hover:text-orange-600 font-medium transition-colors">Home</a>
-            <a href="/about" className="text-whit hover:text-orange-600 font-medium transition-colors">About us</a>
-            <a href="/shop" className="text-white hover:text-orange-600 font-medium transition-colors">Shop Now</a>
-            <a href="/community" className="text-white hover:text-orange-600 font-medium transition-colors">Community</a>
-            <a href="/donate" className="text-white hover:text-orange-600 font-medium transition-colors">Donate</a>
+            <a href="/" className="text-white hover:text-orange-200 font-medium transition-colors">Home</a>
+            <a href="/about" className="text-whit hover:text-orange-200 font-medium transition-colors">About us</a>
+            <a href="/shop" className="text-white hover:text-orange-200 font-medium transition-colors">Shop Now</a>
+            <a href="/community" className="text-white hover:text-orange-200 font-medium transition-colors">Community</a>
+            <a href="/donate" className="text-white hover:text-orange-200 font-medium transition-colors">Donate</a>
+            <a href="/contact" className="text-white hover:text-orange-200 font-medium transition-colors">Contact Us</a>
             
 
             </div>

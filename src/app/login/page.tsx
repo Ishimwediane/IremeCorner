@@ -6,6 +6,8 @@ import Footer from '../components/Footer';
 
 const LoginPage = () => {
   const [isLogin, setIsLogin] = useState(true);
+  const [loading, setLoading] = useState(false);
+
   const [loginData, setLoginData] = useState({
     email: '',
     password: ''
@@ -13,13 +15,12 @@ const LoginPage = () => {
 
   const [registerData, setRegisterData] = useState({
     firstName: '',
-    lastName:'' ,
+    lastName: '' ,
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'customer' ,// default role
-    phone:''
-
+    role: 'artisan', // Only artisan or admin
+    phone: ''
   });
 
   const handleLoginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -36,47 +37,95 @@ const LoginPage = () => {
     });
   };
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('Login:', loginData);
-    
-    // Simulate role-based redirect (replace with actual authentication logic)
-    // For demo purposes, checking email for role keywords
-    const userRole = loginData.email.includes('admin') ? 'admin' : 
-                     loginData.email.includes('artisan') ? 'artisan' : 'learner' ;
-    
-    // Redirect based on role
-    if (userRole === 'admin') {
-      window.location.href = '/admin-dashboard';
-    } else if (userRole === 'artisan') {
-      window.location.href = '/artisan-dashboard';
-    } else {
-      window.location.href = '/learner-dashboard';
-    }
-  };
+  const handleLoginSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setLoading(true);
 
-  const handleRegisterSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Password validation
-    if (registerData.password !== registerData.confirmPassword) {
-      alert('Passwords do not match!');
+  try {
+    const response = await fetch('http://localhost:5000/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: loginData.email,
+        password: loginData.password
+      }),
+    });
+
+    const data = await response.json();
+
+    if (response.ok && data.success) {
+      // Get the nested user object
+      const user = data.data?.user;
+
+      if (!user) {
+        alert('Login failed: User not found');
+        setLoading(false);
+        return;
+      }
+
+      // Store accessToken and user in localStorage
+      localStorage.setItem('authToken', data.data.accessToken);
+      localStorage.setItem('user', JSON.stringify(user));
+
+      // Redirect based on role
+      if (user.role === 'admin') {
+        window.location.href = '/admin-dashboard';
+      } else {
+        window.location.href = '/artisan-dashboard';
+      }
+    } else {
+      alert(data.message || 'Login failed. Please check your credentials.');
+    }
+  } catch (error) {
+    console.error('Login error:', error);
+    alert('Network error. Please try again.');
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  // ✅ First validate passwords on frontend
+  if (registerData.password !== registerData.confirmPassword) {
+    alert("Passwords do not match!");
+    return;
+  }
+
+  try {
+    // ✅ Only send fields backend expects (+ phone)
+    const { firstName, lastName, email, password, role, phone } = registerData;
+
+    const response = await fetch("http://localhost:5000/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        firstName,
+        lastName,
+        email,
+        password,
+        role,
+        phone, // ✅ include phone number
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert(data.message || "Registration failed");
       return;
     }
-    
-    console.log('Register:', registerData);
-    
-    // Redirect based on selected role
-    if (registerData.role === 'admin') {
-      window.location.href = '/admin-dashboard';
-    } else if (registerData.role === 'artisan') {
-      window.location.href = '/artisan-dashboard';
-    } else if (registerData.role === 'trainer') {
-      window.location.href = '/artisan-dashboard';
-    } else {
-      window.location.href = '/learner-dashboard';
-    }
-  };
+
+    console.log("Registration success:", data);
+
+    alert("Registration successful! You can now log in.");
+  } catch (error) {
+    console.error("Registration error:", error);
+    alert("Something went wrong. Try again later.");
+  }
+};
 
   const toggleMode = () => {
     setIsLogin(!isLogin);
@@ -108,15 +157,14 @@ const LoginPage = () => {
           </h1>
 
           {/* Animated Container */}
-          <div className="relative bg-white rounded-2xl shadow-2xl overflow-hidden min-h-[650px] grid grid-cols-1 md:grid-cols-2">
-            
+          <div className="relative bg-white rounded-2xl shadow-2xl overflow-hidden h-[600px] grid grid-cols-1 md:grid-cols-2">
             
             {/* Left Column - Forms */}
             <div className="relative overflow-hidden">
               
               {/* Login Form */}
               <div 
-                className={`absolute inset-0 p-6 md:p-8 flex flex-col justify-center transition-all duration-700 ease-in-out ${
+                className={`absolute inset-0 p-8 md:p-12 flex flex-col justify-center transition-all duration-700 ease-in-out ${
                   isLogin ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0'
                 }`}
               >
@@ -136,6 +184,7 @@ const LoginPage = () => {
                       placeholder="Enter your email"
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
                       required
+                      disabled={loading}
                     />
                   </div>
 
@@ -151,14 +200,16 @@ const LoginPage = () => {
                       placeholder="Enter your password"
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
                       required
+                      disabled={loading}
                     />
                   </div>
 
                   <button
                     type="submit"
-                    className="w-full bg-[#C39766] hover:bg-orange-300 text-white py-3 rounded-lg font-semibold transition-colors shadow-lg hover:shadow-xl"
+                    disabled={loading}
+                    className="w-full bg-[#C39766] hover:bg-orange-300 text-white py-3 rounded-lg font-semibold transition-colors shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Login
+                    {loading ? 'Logging in...' : 'Login'}
                   </button>
 
                   <div className="text-center mt-4">
@@ -171,40 +222,43 @@ const LoginPage = () => {
 
               {/* Register Form */}
               <div 
-                className={`absolute inset-0 p-6 md:p-8 flex flex-col justify-center transition-all duration-700 ease-in-out ${
+                className={`absolute inset-0 p-8 md:p-4 flex flex-col justify-center transition-all duration-700 ease-in-out ${
                   !isLogin ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
                 }`}
               >
-                <h2 className="text-3xl font-bold text-gray-800 mb-2">Create Account</h2>
-                <p className="text-gray-600 mb-6">Register to get started</p>
+               
+                <p className="text-3xl font-bold text-gray-800 mb-2">Register to get started</p>
 
-                <form onSubmit={handleRegisterSubmit} className="">
+                <form onSubmit={handleRegisterSubmit} className="space-y-1">
                   <div>
                     <label className="block text-gray-700 mb-2 font-medium">
-                      FirstName
+                      First Name
                     </label>
                     <input
                       type="text"
-                      name="firstname"
-                      placeholder="Enter firstname"
+                      name="firstName"
+                      placeholder="Enter first name"
                       value={registerData.firstName}
                       onChange={handleRegisterChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
+                      className="w-80 px-4 py-1 border border-gray-300 rounded-lg  focus:ring-2 focus:ring-orange-400 focus:border-transparent"
                       required
+                      disabled={loading}
                     />
                   </div>
+
                   <div>
                     <label className="block text-gray-700 mb-2 font-medium">
-                      LastName
+                      Last Name
                     </label>
                     <input
                       type="text"
-                      name="name"
-                      placeholder="Enter lastname"
+                      name="lastName"
+                      placeholder="Enter last name"
                       value={registerData.lastName}
                       onChange={handleRegisterChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
+                      className="w-80 px-4 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
                       required
+                      disabled={loading}
                     />
                   </div>
 
@@ -218,24 +272,40 @@ const LoginPage = () => {
                       placeholder="Email Address"
                       value={registerData.email}
                       onChange={handleRegisterChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
+                      className="w-80 px-4 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
                       required
+                      disabled={loading}
                     />
                   </div>
 
                   <div>
-                    <label className="block text-gray-700 mb-2 ">
+                    <label className="block text-gray-700 mb-2 font-medium">
+                      Phone
+                    </label>
+                    <input
+                      type="tel"
+                      name="phone"
+                      placeholder="Phone Number"
+                      value={registerData.phone}
+                      onChange={handleRegisterChange}
+                      className="w-80 px-4 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
+                      required
+                      disabled={loading}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 mb-2 font-medium">
                       Register As
                     </label>
                     <select
                       name="role"
                       value={registerData.role}
                       onChange={handleRegisterChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent bg-white"
+                      className="w-80 px-4 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent bg-white"
                       required
+                      disabled={loading}
                     >
-                      <option value="trainer">trainer</option>
-                      <option value="learner">Learner (Training)</option>
                       <option value="artisan">Artisan (Seller)</option>
                       <option value="admin">Admin</option>
                     </select>
@@ -248,11 +318,13 @@ const LoginPage = () => {
                     <input
                       type="password"
                       name="password"
-                      placeholder="Password"
+                      placeholder="Password (min. 6 characters)"
                       value={registerData.password}
                       onChange={handleRegisterChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
+                      className="w-80 px-4 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
                       required
+                      disabled={loading}
+                      minLength={6}
                     />
                   </div>
 
@@ -266,16 +338,18 @@ const LoginPage = () => {
                       placeholder="Confirm Password"
                       value={registerData.confirmPassword}
                       onChange={handleRegisterChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
+                      className="w-80 px-4 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent"
                       required
+                      disabled={loading}
                     />
                   </div>
 
                   <button
                     type="submit"
-                    className="w-full bg-[#C39766] hover:bg-orange-300 text-white py-3 rounded-lg font-semibold transition-colors shadow-lg hover:shadow-xl"
+                    disabled={loading}
+                    className="w-full bg-[#C39766] hover:bg-orange-300 text-white py-3 rounded-lg font-semibold transition-colors shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Register
+                    {loading ? 'Registering...' : 'Register'}
                   </button>
                 </form>
               </div>
