@@ -20,13 +20,73 @@ import {
   RefreshCw
 } from 'lucide-react';
 
+// ✅ TypeScript interfaces
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  mainImage?: string;
+  images?: string[];
+  category?: { name: string };
+  stock: number;
+  status: string;
+  rating?: number;
+}
+
+interface Order {
+  id: string;
+  orderNumber: string;
+  guestName?: string;
+  guestPhone?: string;
+  guestEmail?: string;
+  buyer?: { firstName: string; lastName: string; phone?: string };
+  orderItems?: { id: string; productName: string; quantity: number }[];
+  totalAmount: number;
+  shippingAddress: string;
+  status: string;
+  createdAt: string;
+}
+
+interface Review {
+  id: string;
+  comment: string;
+}
+
+interface Category {
+  id: string;
+  name: string;
+}
+
+interface ArtisanData {
+  name: string;
+  email: string;
+  avatar: string;
+  specialty: string;
+  rating: number;
+  totalProducts: number;
+  totalSales: number;
+  totalRevenue: number;
+  pendingOrders: number;
+}
+
+interface NewProduct {
+  name: string;
+  categoryId: string;
+  categoryName: string;
+  price: string;
+  stock: string;
+  description: string;
+  tags: string[];
+  image: File | null;
+}
+
 const ArtisanDashboard = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [loading, setLoading] = useState(true);
-  
-  const [artisanData, setArtisanData] = useState({
+
+  const [artisanData, setArtisanData] = useState<ArtisanData>({
     name: "",
     email: "",
     avatar: "/images/dia.png",
@@ -38,10 +98,9 @@ const ArtisanDashboard = () => {
     pendingOrders: 0
   });
 
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
-  
-  const [newProduct, setNewProduct] = useState({
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [newProduct, setNewProduct] = useState<NewProduct>({
     name: '',
     categoryId: '',
     categoryName: '',
@@ -52,32 +111,26 @@ const ArtisanDashboard = () => {
     image: null
   });
 
-  const [recentOrders, setRecentOrders] = useState([]);
-  const [reviews, setReviews] = useState([]);
+  const [recentOrders, setRecentOrders] = useState<Order[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
-  // Fetch categories from backend
   const fetchCategories = async () => {
     try {
       const token = localStorage.getItem('authToken');
       const response = await fetch('http://localhost:5000/api/categories', {
-        headers: { 
+        headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
-      
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
-          // Handle different response formats
-          const cats = Array.isArray(data.data) 
-            ? data.data 
+          const cats: Category[] = Array.isArray(data.data)
+            ? data.data
             : data.data?.categories || [];
           setCategories(cats);
-          console.log('Fetched categories:', cats);
-          
-          // Set default category if none selected
           if (cats.length > 0 && !newProduct.categoryId) {
             setNewProduct(prev => ({
               ...prev,
@@ -85,11 +138,7 @@ const ArtisanDashboard = () => {
               categoryName: cats[0].name
             }));
           }
-        } else {
-          console.error('Invalid categories response format:', data);
         }
-      } else {
-        console.error('Failed to fetch categories:', response.status);
       }
     } catch (error) {
       console.error('Error fetching categories:', error);
@@ -107,32 +156,29 @@ const ArtisanDashboard = () => {
   const fetchUserProfile = async () => {
     try {
       const token = localStorage.getItem('authToken');
-      if (!token) { 
-        window.location.href = '/login'; 
-        return; 
+      if (!token) {
+        window.location.href = '/login';
+        return;
       }
-
       const response = await fetch('http://localhost:5000/api/auth/profile', {
-        headers: { 
+        headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
-
       if (response.ok) {
-        const data = await response.json();
+        const res = await response.json();
+        const data = res.data;
         setArtisanData({
-          name: data.firstName + ' ' + data.lastName || data.name || "Artisan",
-          email: data.email || "",
-          avatar: data.avatar 
-            ? `http://localhost:5000/${data.avatar}` 
-            : "/images/dia.png",
-          specialty: data.specialty || "Artisan",
-          rating: data.rating || 4.8,
-          totalProducts: data.totalProducts || 0,
-          totalSales: data.totalSales || 0,
-          totalRevenue: data.totalRevenue || 0,
-          pendingOrders: data.pendingOrders || 0
+          name: ((data?.firstName || '') + ' ' + (data?.lastName || '')).trim() || 'Artisan',
+          email: data?.email || '',
+          avatar: data?.avatar ? `http://localhost:5000/${data.avatar}` : '/images/dia.png',
+          specialty: data?.specialty || 'Artisan',
+          rating: data?.rating || 0,
+          totalProducts: data?.totalProducts || 0,
+          totalSales: data?.totalSales || 0,
+          totalRevenue: data?.totalRevenue || 0,
+          pendingOrders: data?.pendingOrders || 0
         });
       } else {
         localStorage.removeItem('authToken');
@@ -141,27 +187,30 @@ const ArtisanDashboard = () => {
     } catch (error) {
       console.error('Error fetching profile:', error);
       alert('Failed to load profile. Please refresh the page.');
-    } finally { 
-      setLoading(false); 
+    } finally {
+      setLoading(false);
     }
   };
 
   const fetchProducts = async () => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:5000/api/products', {
-        headers: { 
+      const profileRes = await fetch('http://localhost:5000/api/auth/profile', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const profile = await profileRes.json();
+      const artisanId = profile.data.id;
+
+      const response = await fetch(`http://localhost:5000/api/products?artisanId=${artisanId}`, {
+        headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
       if (response.ok) {
         const data = await response.json();
-        const productsArray = data.data?.products || [];
-        console.log('Products found:', productsArray.length);
-        setProducts(productsArray);
+        setProducts(data.data?.products || []);
       } else {
-        console.error('Failed to fetch products:', response.status);
         setProducts([]);
       }
     } catch (error) {
@@ -173,18 +222,18 @@ const ArtisanDashboard = () => {
   const fetchOrders = async () => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:5000/api/orders/my-orders', {
-        headers: { 
+      const response = await fetch('http://localhost:5000/api/orders/artisan-orders', {
+        headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
       if (response.ok) {
         const data = await response.json();
-        setRecentOrders(Array.isArray(data) ? data.slice(0, 5) : []);
+        setRecentOrders(data.data?.orders || []);
       }
-    } catch (error) { 
-      console.error('Error fetching orders:', error); 
+    } catch (error) {
+      console.error('Error fetching orders:', error);
     }
   };
 
@@ -192,7 +241,7 @@ const ArtisanDashboard = () => {
     try {
       const token = localStorage.getItem('authToken');
       const response = await fetch('http://localhost:5000/api/reviews/my-reviews', {
-        headers: { 
+        headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
@@ -201,14 +250,13 @@ const ArtisanDashboard = () => {
         const data = await response.json();
         setReviews(Array.isArray(data) ? data.slice(0, 5) : []);
       }
-    } catch (error) { 
-      console.error('Error fetching reviews:', error); 
+    } catch (error) {
+      console.error('Error fetching reviews:', error);
     }
   };
 
-  const handleProductInputChange = (e) => {
+  const handleProductInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    
     if (name === 'categoryId') {
       const selectedCategory = categories.find(cat => cat.id === value);
       setNewProduct(prev => ({
@@ -217,14 +265,11 @@ const ArtisanDashboard = () => {
         categoryName: selectedCategory ? selectedCategory.name : ''
       }));
     } else {
-      setNewProduct(prev => ({
-        ...prev,
-        [name]: value
-      }));
+      setNewProduct(prev => ({ ...prev, [name]: value }));
     }
   };
 
-  const handleImageChange = (e) => {
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
@@ -235,30 +280,14 @@ const ArtisanDashboard = () => {
     }
   };
 
-  const handleAddProduct = async (e) => {
+  const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
 
-    if (!newProduct.name.trim()) {
-      alert('Product name is required');
-      setSubmitting(false);
-      return;
-    }
-    if (!newProduct.categoryId) {
-      alert('Please select a category');
-      setSubmitting(false);
-      return;
-    }
-    if (!newProduct.price || parseFloat(newProduct.price) <= 0) {
-      alert('Please enter a valid price');
-      setSubmitting(false);
-      return;
-    }
-    if (!newProduct.description.trim()) {
-      alert('Product description is required');
-      setSubmitting(false);
-      return;
-    }
+    if (!newProduct.name.trim()) { alert('Product name is required'); setSubmitting(false); return; }
+    if (!newProduct.categoryId) { alert('Please select a category'); setSubmitting(false); return; }
+    if (!newProduct.price || parseFloat(newProduct.price) <= 0) { alert('Please enter a valid price'); setSubmitting(false); return; }
+    if (!newProduct.description.trim()) { alert('Product description is required'); setSubmitting(false); return; }
 
     try {
       const token = localStorage.getItem('authToken');
@@ -274,64 +303,53 @@ const ArtisanDashboard = () => {
       formData.append('price', newProduct.price);
       formData.append('categoryId', newProduct.categoryId);
       formData.append('stock', newProduct.stock || '0');
-      
       if (newProduct.tags && newProduct.tags.length > 0) {
         newProduct.tags.forEach(tag => formData.append('tags', tag));
       }
-      
       if (newProduct.image) {
         formData.append('productImages', newProduct.image);
       }
 
       const response = await fetch('http://localhost:5000/api/products', {
         method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Authorization': `Bearer ${token}` },
         body: formData
       });
 
       const responseData = await response.json();
-      
+
       if (response.ok) {
         alert('Product added successfully!');
-        setNewProduct({ 
-          name: '', 
-          description: '', 
-          price: '', 
-          categoryId: categories.length > 0 ? categories[0].id : '', 
-          categoryName: categories.length > 0 ? categories[0].name : '', 
-          stock: '', 
-          tags: [], 
-          image: null 
+        setNewProduct({
+          name: '', description: '', price: '',
+          categoryId: categories.length > 0 ? categories[0].id : '',
+          categoryName: categories.length > 0 ? categories[0].name : '',
+          stock: '', tags: [], image: null
         });
         setShowAddProduct(false);
         fetchProducts();
       } else {
-        console.error('Backend error:', responseData);
         alert(responseData.message || `Failed to add product. Status: ${response.status}`);
       }
     } catch (error) {
-      console.error('Network error adding product:', error);
+      console.error('Network error:', error);
       alert('Network error. Please check your connection and try again.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleDeleteProduct = async (productId) => {
+  const handleDeleteProduct = async (productId: string) => {
     if (!confirm('Are you sure you want to delete this product? This action cannot be undone.')) return;
-
     try {
       const token = localStorage.getItem('authToken');
       const response = await fetch(`http://localhost:5000/api/products/${productId}`, {
         method: 'DELETE',
-        headers: { 
+        headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
-
       if (response.ok) {
         alert('Product deleted successfully!');
         fetchProducts();
@@ -339,7 +357,6 @@ const ArtisanDashboard = () => {
         alert('Failed to delete product');
       }
     } catch (error) {
-      console.error('Error deleting product:', error);
       alert('Failed to delete product');
     }
   };
@@ -349,13 +366,8 @@ const ArtisanDashboard = () => {
     window.location.href = '/login';
   };
 
-  const refreshCategories = () => {
-    fetchCategories();
-  };
-
-  // Helper to build image URL
-  const getImageUrl = (mainImage) => {
-    if (!mainImage) return '/images/placeholder.jpg';
+  const getImageUrl = (mainImage?: string): string => {
+    if (!mainImage) return '/images/bask.jpeg';
     if (mainImage.startsWith('http')) return mainImage;
     return `http://localhost:5000/${mainImage}`;
   };
@@ -385,7 +397,7 @@ const ArtisanDashboard = () => {
                 {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
               <a href="/">
-                <img 
+                <img
                   src="/images/logo.png"
                   alt="IremeCorner"
                   className="h-10 w-auto"
@@ -404,12 +416,12 @@ const ArtisanDashboard = () => {
                   </span>
                 )}
               </button>
-              
               <div className="flex items-center space-x-3">
                 <img
                   src={artisanData.avatar}
                   alt={artisanData.name}
                   className="w-8 h-8 rounded-full object-cover"
+                  onError={(e) => { (e.target as HTMLImageElement).src = '/images/dia.png'; }}
                 />
                 <span className="hidden md:inline font-medium">{artisanData.name}</span>
               </div>
@@ -418,8 +430,8 @@ const ArtisanDashboard = () => {
         </div>
       </nav>
 
-      {/* Sidebar */}
       <div className="flex">
+        {/* Sidebar */}
         <aside className={`fixed lg:static inset-y-0 left-0 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 transition-transform duration-300 ease-in-out w-64 bg-white shadow-lg z-40 mt-16 lg:mt-0`}>
           <div className="p-6 space-y-2">
             {[
@@ -439,16 +451,16 @@ const ArtisanDashboard = () => {
               >
                 <Icon className="w-5 h-5" />
                 <span className="font-medium">{label}</span>
-                {id === 'orders' && artisanData.pendingOrders > 0 && (
+                {id === 'orders' && recentOrders.length > 0 && (
                   <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                    {artisanData.pendingOrders}
+                    {recentOrders.length}
                   </span>
                 )}
               </button>
             ))}
 
             <div className="pt-4 border-t">
-              <button 
+              <button
                 onClick={handleLogout}
                 className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
               >
@@ -470,7 +482,7 @@ const ArtisanDashboard = () => {
                   <h2 className="text-2xl font-bold text-gray-800">Welcome back, {artisanData.name}!</h2>
                   <p className="text-gray-600">{artisanData.email}</p>
                 </div>
-                <button 
+                <button
                   onClick={() => setShowAddProduct(true)}
                   className="flex items-center space-x-2 bg-orange-400 hover:bg-orange-500 text-white px-4 py-2 rounded-lg transition-colors"
                 >
@@ -484,16 +496,16 @@ const ArtisanDashboard = () => {
                 <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl shadow-lg p-6">
                   <div className="flex items-center justify-between mb-2">
                     <Package className="w-8 h-8 opacity-80" />
-                    <span className="text-2xl font-bold">{artisanData.totalProducts}</span>
+                    <span className="text-2xl font-bold">{products.length}</span>
                   </div>
-                  <p className="text-sm opacity-90">Total Products</p>
+                  <p className="text-sm opacity-90">My Products</p>
                 </div>
                 <div className="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-xl shadow-lg p-6">
                   <div className="flex items-center justify-between mb-2">
                     <ShoppingCart className="w-8 h-8 opacity-80" />
-                    <span className="text-2xl font-bold">{artisanData.totalSales}</span>
+                    <span className="text-2xl font-bold">{recentOrders.length}</span>
                   </div>
-                  <p className="text-sm opacity-90">Total Sales</p>
+                  <p className="text-sm opacity-90">Total Orders</p>
                 </div>
                 <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-xl shadow-lg p-6">
                   <div className="flex items-center justify-between mb-2">
@@ -514,8 +526,8 @@ const ArtisanDashboard = () => {
               {/* Recent Products */}
               <div className="bg-white rounded-xl shadow-lg p-6">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-bold text-gray-800">Recent Products</h3>
-                  <button 
+                  <h3 className="text-xl font-bold text-gray-800">My Recent Products</h3>
+                  <button
                     onClick={fetchProducts}
                     className="flex items-center space-x-1 text-orange-500 hover:text-orange-600 text-sm"
                   >
@@ -529,12 +541,14 @@ const ArtisanDashboard = () => {
                   <div className="grid md:grid-cols-3 gap-6">
                     {products.slice(0, 3).map(product => (
                       <div key={product.id} className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
-                        <img 
-                          src={getImageUrl(product.mainImage)}
-                          alt={product.name}
-                          className="w-full h-40 object-cover"
-                          onError={(e) => { e.target.src = '/images/placeholder.jpg'; }}
-                        />
+                        <div className="h-40 overflow-hidden">
+                          <img
+                            src={getImageUrl(product.mainImage)}
+                            alt={product.name}
+                            className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
+                            onError={(e) => { (e.target as HTMLImageElement).src = '/images/bask.jpeg'; }}
+                          />
+                        </div>
                         <div className="p-4">
                           <h4 className="font-semibold text-gray-800 mb-1">{product.name}</h4>
                           <p className="text-xs text-gray-500 mb-2">
@@ -564,15 +578,14 @@ const ArtisanDashboard = () => {
               <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold text-gray-800">My Products</h2>
                 <div className="flex space-x-2">
-                  <button 
-                    onClick={refreshCategories}
+                  <button
+                    onClick={fetchCategories}
                     className="flex items-center space-x-2 bg-gray-200 hover:bg-gray-300 text-gray-800 px-3 py-2 rounded-lg transition-colors text-sm"
-                    title="Refresh categories"
                   >
                     <RefreshCw className="w-4 h-4" />
                     <span className="hidden md:inline">Refresh Categories</span>
                   </button>
-                  <button 
+                  <button
                     onClick={() => setShowAddProduct(true)}
                     className="flex items-center space-x-2 bg-orange-400 hover:bg-orange-500 text-white px-4 py-2 rounded-lg transition-colors"
                   >
@@ -586,7 +599,7 @@ const ArtisanDashboard = () => {
                 <div className="bg-white rounded-xl shadow-lg p-12 text-center">
                   <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                   <p className="text-gray-600 text-lg mb-4">No products yet</p>
-                  <button 
+                  <button
                     onClick={() => setShowAddProduct(true)}
                     className="bg-orange-400 hover:bg-orange-500 text-white px-6 py-2 rounded-lg transition-colors"
                   >
@@ -597,12 +610,12 @@ const ArtisanDashboard = () => {
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {products.map(product => (
                     <div key={product.id} className="bg-white rounded-xl shadow-lg overflow-hidden">
-                      <div className="relative h-48">
-                        <img 
+                      <div className="relative h-48 overflow-hidden">
+                        <img
                           src={getImageUrl(product.mainImage)}
                           alt={product.name}
-                          className="w-full h-full object-cover"
-                          onError={(e) => { e.target.src = '/images/placeholder.jpg'; }}
+                          className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
+                          onError={(e) => { (e.target as HTMLImageElement).src = '/images/bask.jpeg'; }}
                         />
                         <span className={`absolute top-2 right-2 px-3 py-1 rounded-full text-xs font-semibold ${
                           product.status === 'active' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
@@ -625,9 +638,7 @@ const ArtisanDashboard = () => {
                           </div>
                           <div className="flex justify-between">
                             <span>Category:</span>
-                            <span className="font-semibold">
-                              {product.category?.name || 'Uncategorized'}
-                            </span>
+                            <span className="font-semibold">{product.category?.name || 'Uncategorized'}</span>
                           </div>
                         </div>
                         <div className="flex space-x-2">
@@ -639,7 +650,7 @@ const ArtisanDashboard = () => {
                             <Edit className="w-4 h-4" />
                             <span>Edit</span>
                           </button>
-                          <button 
+                          <button
                             onClick={() => handleDeleteProduct(product.id)}
                             className="flex items-center justify-center bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm transition-colors"
                           >
@@ -657,17 +668,78 @@ const ArtisanDashboard = () => {
           {/* Orders Tab */}
           {activeTab === 'orders' && (
             <div className="space-y-6">
-              <h2 className="text-2xl font-bold text-gray-800">Orders</h2>
-              <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-gray-800">Orders</h2>
+                <button
+                  onClick={fetchOrders}
+                  className="flex items-center space-x-1 text-orange-500 hover:text-orange-600 text-sm"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  <span>Refresh</span>
+                </button>
+              </div>
+              <div className="bg-white rounded-xl shadow-lg overflow-hidden">
                 {recentOrders.length === 0 ? (
-                  <p className="text-gray-600 text-center py-8">No orders yet</p>
+                  <p className="text-gray-600 text-center py-12">No orders yet</p>
                 ) : (
-                  <div className="space-y-4">
-                    {recentOrders.map(order => (
-                      <div key={order.id} className="border rounded-lg p-4">
-                        <p>Order #{order.id}</p>
-                      </div>
-                    ))}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 border-b">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-gray-600">Order #</th>
+                          <th className="px-4 py-3 text-left text-gray-600">Customer</th>
+                          <th className="px-4 py-3 text-left text-gray-600">Phone</th>
+                          <th className="px-4 py-3 text-left text-gray-600">Items</th>
+                          <th className="px-4 py-3 text-left text-gray-600">Total</th>
+                          <th className="px-4 py-3 text-left text-gray-600">Address</th>
+                          <th className="px-4 py-3 text-left text-gray-600">Status</th>
+                          <th className="px-4 py-3 text-left text-gray-600">Date</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {recentOrders.map(order => (
+                          <tr key={order.id} className="hover:bg-gray-50">
+                            <td className="px-4 py-3 font-medium text-orange-500">
+                              {order.orderNumber}
+                            </td>
+                            <td className="px-4 py-3">
+                              {order.guestName || 
+                               (order.buyer ? `${order.buyer.firstName} ${order.buyer.lastName}` : 'N/A')}
+                            </td>
+                            <td className="px-4 py-3">
+                              {order.guestPhone || order.buyer?.phone || 'N/A'}
+                            </td>
+                            <td className="px-4 py-3">
+                              {order.orderItems?.map(item => (
+                                <div key={item.id} className="text-xs">
+                                  {item.productName} x{item.quantity}
+                                </div>
+                              ))}
+                            </td>
+                            <td className="px-4 py-3 font-semibold">
+                              {Number(order.totalAmount).toLocaleString()} Frw
+                            </td>
+                            <td className="px-4 py-3 text-xs text-gray-500 max-w-xs truncate">
+                              {order.shippingAddress}
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                                order.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                                order.status === 'confirmed' ? 'bg-blue-100 text-blue-700' :
+                                order.status === 'delivered' ? 'bg-green-100 text-green-700' :
+                                order.status === 'cancelled' ? 'bg-red-100 text-red-700' :
+                                'bg-gray-100 text-gray-700'
+                              }`}>
+                                {order.status}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-xs text-gray-500">
+                              {new Date(order.createdAt).toLocaleDateString()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 )}
               </div>
@@ -685,7 +757,7 @@ const ArtisanDashboard = () => {
                   <div className="space-y-4">
                     {reviews.map(review => (
                       <div key={review.id} className="border rounded-lg p-4">
-                        <p>Review: {review.comment}</p>
+                        <p>{review.comment}</p>
                       </div>
                     ))}
                   </div>
@@ -722,7 +794,7 @@ const ArtisanDashboard = () => {
           <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b flex justify-between items-center">
               <h3 className="text-2xl font-bold text-gray-800">Add New Product</h3>
-              <button 
+              <button
                 onClick={() => setShowAddProduct(false)}
                 className="text-gray-500 hover:text-gray-700"
                 disabled={submitting}
@@ -733,8 +805,8 @@ const ArtisanDashboard = () => {
             <form onSubmit={handleAddProduct} className="p-6 space-y-4">
               <div>
                 <label className="block text-gray-700 font-medium mb-2">Product Name *</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   name="name"
                   value={newProduct.name}
                   onChange={handleProductInputChange}
@@ -753,16 +825,16 @@ const ArtisanDashboard = () => {
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-400"></div>
                       <span>Loading categories...</span>
                     </div>
-                    <button 
+                    <button
                       type="button"
-                      onClick={refreshCategories}
+                      onClick={fetchCategories}
                       className="mt-2 text-orange-500 hover:text-orange-600 underline text-sm"
                     >
                       Click here if categories don't load
                     </button>
                   </div>
                 ) : (
-                  <select 
+                  <select
                     name="categoryId"
                     value={newProduct.categoryId}
                     onChange={handleProductInputChange}
@@ -788,8 +860,8 @@ const ArtisanDashboard = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-gray-700 font-medium mb-2">Price (Frw) *</label>
-                  <input 
-                    type="number" 
+                  <input
+                    type="number"
                     name="price"
                     value={newProduct.price}
                     onChange={handleProductInputChange}
@@ -803,8 +875,8 @@ const ArtisanDashboard = () => {
                 </div>
                 <div>
                   <label className="block text-gray-700 font-medium mb-2">Stock *</label>
-                  <input 
-                    type="number" 
+                  <input
+                    type="number"
                     name="stock"
                     value={newProduct.stock}
                     onChange={handleProductInputChange}
@@ -820,7 +892,7 @@ const ArtisanDashboard = () => {
 
               <div>
                 <label className="block text-gray-700 font-medium mb-2">Description *</label>
-                <textarea 
+                <textarea
                   name="description"
                   value={newProduct.description}
                   onChange={handleProductInputChange}
@@ -844,9 +916,9 @@ const ArtisanDashboard = () => {
                 {newProduct.image && (
                   <div className="mt-2">
                     <p className="text-sm text-green-600">✓ Image selected: {newProduct.image.name}</p>
-                    <img 
-                      src={URL.createObjectURL(newProduct.image)} 
-                      alt="Preview" 
+                    <img
+                      src={URL.createObjectURL(newProduct.image)}
+                      alt="Preview"
                       className="mt-2 h-24 w-24 object-cover rounded-lg border"
                     />
                   </div>
@@ -854,7 +926,7 @@ const ArtisanDashboard = () => {
               </div>
 
               <div className="flex space-x-4 pt-4">
-                <button 
+                <button
                   type="button"
                   onClick={() => setShowAddProduct(false)}
                   className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50"
@@ -862,7 +934,7 @@ const ArtisanDashboard = () => {
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   type="submit"
                   className="flex-1 bg-orange-400 hover:bg-orange-500 text-white px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={submitting}
@@ -872,9 +944,7 @@ const ArtisanDashboard = () => {
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
                       Adding...
                     </span>
-                  ) : (
-                    'Add Product'
-                  )}
+                  ) : 'Add Product'}
                 </button>
               </div>
             </form>

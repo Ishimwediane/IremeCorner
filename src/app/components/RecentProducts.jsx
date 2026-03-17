@@ -13,21 +13,14 @@ const RecentProducts = () => {
   useEffect(() => {
     const fetchRecentProducts = async () => {
       try {
-        // Replace with your actual API endpoint
-        const res = await fetch('/api/products?sort=recent&limit=10');
+        const res = await fetch('http://localhost:5000/api/products?limit=5&sortBy=createdAt&sortOrder=DESC');
+        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
         const data = await res.json();
-        setProducts(data);
+        const fetched = data.data?.products || [];
+        setProducts(fetched);
       } catch (error) {
         console.error('Failed to fetch products:', error);
-        // Fallback demo data so the section still renders
-        setProducts([
-          { id: 1, name: 'Woven Basket', price: 8500, category: { name: 'Basket Weaving' }, mainImage: '/images/bask.jpeg' },
-          { id: 2, name: 'Imigongo Panel', price: 15000, category: { name: 'Imigongo Art' }, mainImage: '/images/imigongo.jpeg' },
-          { id: 3, name: 'Clay Pot', price: 5000, category: { name: 'Pottery' }, mainImage: '/images/kub.jpeg' },
-          { id: 4, name: 'Wall Hanging', price: 12000, category: { name: 'Imitako' }, mainImage: '/images/wall.jpeg' },
-          { id: 5, name: 'Crochet Bag', price: 7000, category: { name: 'Crochet' }, mainImage: '/images/croch.jpeg' },
-          { id: 6, name: 'Beaded Necklace', price: 4500, category: { name: 'Jewellery' }, mainImage: '/images/udukomo.jpeg' },
-        ]);
+        setProducts([]);
       } finally {
         setLoading(false);
       }
@@ -35,6 +28,20 @@ const RecentProducts = () => {
 
     fetchRecentProducts();
   }, []);
+
+  const getProductImage = (product) => {
+    if (product.mainImage) {
+      return `http://localhost:5000/${product.mainImage}`;
+    }
+    if (product.images && Array.isArray(product.images) && product.images.length > 0) {
+      return `http://localhost:5000/${product.images[0]}`;
+    }
+    return '/images/bask.jpeg';
+  };
+
+  const handleImageError = (e) => {
+    e.target.src = '/images/bask.jpeg';
+  };
 
   const checkScroll = () => {
     const el = scrollRef.current;
@@ -46,16 +53,14 @@ const RecentProducts = () => {
   const scroll = (direction) => {
     const el = scrollRef.current;
     if (!el) return;
-    const amount = 320;
-    el.scrollBy({ left: direction === 'left' ? -amount : amount, behavior: 'smooth' });
+    el.scrollBy({ left: direction === 'left' ? -320 : 320, behavior: 'smooth' });
     setTimeout(checkScroll, 350);
   };
 
-  // Auto-slide every 4 seconds
   useEffect(() => {
     const autoSlide = setInterval(() => {
       const el = scrollRef.current;
-      if (!el) return;
+      if (!el || products.length === 0) return;
       const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 1;
       if (atEnd) {
         el.scrollTo({ left: 0, behavior: 'smooth' });
@@ -71,6 +76,7 @@ const RecentProducts = () => {
   return (
     <section className="py-16 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
         {/* Section Header */}
         <div className="flex items-center justify-between mb-10">
           <div>
@@ -83,7 +89,7 @@ const RecentProducts = () => {
           </div>
           <a
             href="/shop"
-            className="hidden md:inline-flex items-center gap-2 bg-orange-300 hover:bg-[#202f32] text-white px-6 py-3 rounded-lg font-semibold transition-all transform hover:scale-105 text-sm"
+            className="hidden md:inline-flex items-center gap-2 bg-orange-300 hover:bg-black text-white px-6 py-3 rounded-lg font-semibold transition-all transform hover:scale-105 text-sm"
           >
             <ShoppingBag size={16} />
             View All
@@ -119,81 +125,77 @@ const RecentProducts = () => {
             className="flex gap-5 overflow-x-auto pb-4 scroll-smooth"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
-            {loading
-              ? // Skeleton loaders
-                Array.from({ length: 5 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="flex-shrink-0 w-64 bg-gray-100 rounded-2xl overflow-hidden animate-pulse"
-                  >
-                    <div className="h-56 bg-gray-200" />
-                    <div className="p-4 space-y-2">
-                      <div className="h-4 bg-gray-200 rounded w-3/4" />
-                      <div className="h-3 bg-gray-200 rounded w-1/2" />
-                      <div className="h-4 bg-gray-200 rounded w-1/3 mt-2" />
-                    </div>
+            {loading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="flex-shrink-0 w-64 bg-gray-100 rounded-2xl overflow-hidden animate-pulse"
+                >
+                  <div className="h-56 bg-gray-200" />
+                  <div className="p-4 space-y-2">
+                    <div className="h-4 bg-gray-200 rounded w-3/4" />
+                    <div className="h-3 bg-gray-200 rounded w-1/2" />
+                    <div className="h-4 bg-gray-200 rounded w-1/3 mt-2" />
                   </div>
-                ))
-              : products.map((product) => (
-                  <div
-                    key={product.id}
-                    className="flex-shrink-0 w-64 bg-white rounded-2xl overflow-hidden shadow-md border border-gray-100 group hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
-                  >
-                    {/* Product Image */}
-                    <div className="relative h-56 overflow-hidden bg-gray-50">
-                      <img
-                        src={product.mainImage 
-  ? `http://localhost:5000/${product.mainImage}` 
-  : '/images/bask.jpeg'}
-                        alt={product.name}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                      />
-                      {/* NEW badge */}
-                      <span className="absolute top-3 left-3 bg-orange-400 text-white text-xs font-bold px-2 py-1 rounded-full uppercase tracking-wide">
-                        New
+                </div>
+              ))
+            ) : products.length === 0 ? (
+              <div className="w-full text-center py-8 text-gray-500">
+                No products available yet.
+              </div>
+            ) : (
+              products.map((product) => (
+                <div
+                  key={product.id}
+                  className="flex-shrink-0 w-64 bg-white rounded-2xl overflow-hidden shadow-md border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+                >
+                  {/* Product Image - no overlay div to avoid black box */}
+                  <div className="h-56 overflow-hidden relative">
+                    <img
+                      src={getProductImage(product)}
+                      alt={product.name}
+                      className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
+                      onError={handleImageError}
+                    />
+                    <span className="absolute top-3 left-3 bg-orange-400 text-white text-xs font-bold px-2 py-1 rounded-full uppercase tracking-wide">
+                      New
+                    </span>
+                  </div>
+
+                  {/* Product Info */}
+                  <div className="p-4">
+                    <p className="text-xs text-orange-400 uppercase tracking-widest font-medium mb-1">
+                      {product.category?.name || 'Handmade'}
+                    </p>
+                    <h4 className="text-gray-800 font-semibold text-base leading-snug mb-1 truncate">
+                      {product.name}
+                    </h4>
+                    <p className="text-xs text-gray-400 mb-2">
+                      By {product.artisan?.firstName} {product.artisan?.lastName}
+                    </p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[#202f32] font-bold text-lg">
+                        {Number(product.price).toLocaleString()} RWF
                       </span>
-                    </div>
-
-                    {/* Product Info */}
-                    <div className="p-4">
-                      <p className="text-xs text-orange-400 uppercase tracking-widest font-medium mb-1">
-                        {product.category?.name || 'Handmade'}
-                      </p>
-                      <h4 className="text-gray-800 font-semibold text-base leading-snug mb-2 truncate">
-                        {product.name}
-                      </h4>
-                      <p className="text-xs text-gray-400 mb-2">
-                        By {product.artisan?.firstName} {product.artisan?.lastName}
-                      </p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-[#202f32] font-bold text-lg">
-                          {Number(product.price).toLocaleString()} RWF
-                        </span>
-                        <a
-                          href={`/shop/${product.id}`}
-                          className="bg-[#202f32] hover:bg-orange-400 text-white text-xs px-3 py-2 rounded-lg transition-all font-medium"
-                        >
-                          View
-                        </a>
-                      </div>
+                      <a
+                        href={`/shop/${product.id}`}
+                        className="bg-[#202f32] hover:bg-orange-400 text-white text-xs px-3 py-2 rounded-lg transition-all font-medium"
+                      >
+                        View
+                      </a>
                     </div>
                   </div>
-                ))}
+                </div>
+              ))
+            )}
           </div>
-
-          {/* Hide scrollbar for WebKit */}
-          <style jsx>{`
-            div::-webkit-scrollbar {
-              display: none;
-            }
-          `}</style>
         </div>
 
         {/* Mobile View All button */}
         <div className="text-center mt-8 md:hidden">
           <a
             href="/shop"
-            className="inline-flex items-center gap-2 bg-orange-300 hover:bg-[#202f32] text-white px-8 py-3 rounded-lg font-semibold transition-all transform hover:scale-105"
+            className="inline-flex items-center gap-2 bg-orange-300 hover:bg-black text-white px-8 py-3 rounded-lg font-semibold transition-all transform hover:scale-105"
           >
             <ShoppingBag size={16} />
             View All Products
