@@ -5,6 +5,7 @@ import compression from 'compression';
 import morgan from 'morgan';
 import 'reflect-metadata';
 
+
 import { initializeDatabase } from './config/database.js';
 import { configs } from './config/index.js';
 import { generalLimiter } from './middleware/rateLimit/rateLimit.js';
@@ -25,12 +26,14 @@ const start = async () => {
   await initializeDatabase();
 
   // Security middleware
-  app.use(helmet());
- app.use(cors({
-  origin: configs.cors.origin,
-  credentials: true
+ app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  crossOriginEmbedderPolicy: false,
 }));
- // Static files
+app.use(cors({
+  origin: '*',
+  credentials: false
+}));
 app.use('/uploads', (req, res, next) => {
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
   res.setHeader('Access-Control-Allow-Origin', '*');

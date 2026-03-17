@@ -86,11 +86,19 @@ export class Order {
   @JoinColumn({ name: 'buyerId' })
   buyer;
 
-  @Column({ type: 'uuid' })
+  @Column({ type: 'uuid', nullable: true  })
   buyerId;
 
   @OneToMany(() => OrderItem, orderItem => orderItem.order, { cascade: true })
   orderItems;
+  @Column({ type: 'varchar', length: 100, nullable: true })
+guestName;
+
+@Column({ type: 'varchar', length: 20, nullable: true })
+guestPhone;
+
+@Column({ type: 'varchar', length: 100, nullable: true })
+guestEmail;
 
   // Methods
   generateOrderNumber() {

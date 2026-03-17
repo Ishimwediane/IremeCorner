@@ -7,14 +7,16 @@ export class OrderController {
   }
 
   createOrder = asyncHandler(async (req, res) => {
-    const order = await this.orderService.createOrder(req.body, req.user.id);
 
-    res.status(201).json({
-      success: true,
-      message: 'Order created successfully',
-      data: order
-    });
+  const buyerId = req.user ? req.user.id : null;
+  const order = await this.orderService.createOrder(req.body, buyerId);
+
+  res.status(201).json({
+    success: true,
+    message: 'Order created successfully',
+    data: order
   });
+});
 
   getOrderById = asyncHandler(async (req, res) => {
     const order = await this.orderService.getOrderById(req.params.id);
@@ -42,7 +44,10 @@ export class OrderController {
       data: result
     });
   });
-
+  getArtisanOrders = asyncHandler(async (req, res) => {
+  const result = await this.orderService.getOrdersByArtisan(req.user.id, req.query);
+  res.json({ success: true, data: result });
+});
   updateOrderStatus = asyncHandler(async (req, res) => {
     const { status } = req.body;
     const order = await this.orderService.updateOrderStatus(

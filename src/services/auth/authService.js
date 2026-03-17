@@ -10,7 +10,7 @@ export class AuthService {
   }
 
   async register(userData) {
-    const { email, password, firstName, lastName, role = UserRole.BUYER } = userData;
+    const { email, password, firstName, lastName, role = UserRole.BUYER,phone } = userData;
 
     // Check if user already exists
     const existingUser = await this.userRepository.findOne({ where: { email } });
@@ -24,7 +24,8 @@ export class AuthService {
       password,
       firstName,
       lastName,
-      role
+      role,
+      phone
     });
 
     const savedUser = await this.userRepository.save(user);
@@ -35,7 +36,7 @@ export class AuthService {
     // Find user with password
     const user = await this.userRepository.findOne({ 
       where: { email },
-      select: ['id', 'email', 'password', 'firstName', 'lastName', 'role', 'isActive', 'isEmailVerified']
+      select: ['id', 'email', 'password', 'firstName', 'lastName', 'role','phone', 'isActive', 'isEmailVerified']
     });
 
     if (!user) {
@@ -60,7 +61,7 @@ export class AuthService {
       const decoded = jwt.verify(refreshToken, configs.jwt.refreshSecret);
       const user = await this.userRepository.findOne({ 
         where: { id: decoded.userId },
-        select: ['id', 'email', 'firstName', 'lastName', 'role', 'isActive', 'isEmailVerified']
+        select: ['id', 'email', 'firstName', 'lastName', 'role','phone', 'isActive', 'isEmailVerified']
       });
 
       if (!user || !user.isActive) {
@@ -97,6 +98,7 @@ export class AuthService {
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role,
+        phone: user.phone,
         isEmailVerified: user.isEmailVerified
       }
     };

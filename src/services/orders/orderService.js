@@ -15,14 +15,19 @@ export class OrderService {
     this.paymentRepository = AppDataSource.getRepository(Payment);
   }
 
-  async createOrder(orderData, buyerId) {
-    const { items, shippingAddress, billingAddress, notes } = orderData;
+  async createOrder(orderData, buyerId = null) {
+  const { items, shippingAddress, billingAddress, notes, guestName, guestPhone, guestEmail } = orderData;
 
-    // Verify buyer exists
+  // Verify buyer if logged in
+  if (buyerId) {
     const buyer = await this.userRepository.findOne({ where: { id: buyerId } });
-    if (!buyer) {
-      throw new AppError('Buyer not found', 404);
+    if (!buyer) throw new AppError('Buyer not found', 404);
+  } else {
+    // Guest order - require guest info
+    if (!guestName || !guestPhone) {
+      throw new AppError('Guest name and phone are required', 400);
     }
+  }
 
     // Validate and calculate order items
     const orderItems = [];
@@ -63,6 +68,9 @@ export class OrderService {
     // Create order
     const order = this.orderRepository.create({
       buyerId,
+      guestName: guestName || null,
+      guestPhone: guestPhone || null,
+      guestEmail: guestEmail || null,
       subtotal,
       totalAmount: subtotal, // Will be updated with tax, shipping, discount
       shippingAddress,
@@ -331,4 +339,25 @@ export class OrderService {
       ordersByStatus
     };
   }
+  async getOrdersByArtisan(artisanId, filters = {}) {
+  const { page = 1, limit = 20 } = filters;
+
+  const queryBuilder = this.orderRepository
+    .createQueryBuilder('order')
+    .leftJoinAndSelect('order.orderItems', 'orderItems')
+    .leftJoinAndSelect('orderItems.product', 'product')
+    .leftJoinAndSelect('order.buyer', 'buyer')
+    .where('product.artisanId = :artisanId', { artisanId });
+
+  const offset = (page - 1) * limit;
+  queryBuilder.skip(offset).take(limit).orderBy('order.createdAt', 'DESC');
+
+  const [orders, total] = await queryBuilder.getManyAndCount();
+
+  return {
+    orders,
+    pagination: { page: parseInt(page), limit: parseInt(limit), total }
+  };
 }
+}
+

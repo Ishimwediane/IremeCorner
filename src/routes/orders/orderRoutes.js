@@ -10,14 +10,20 @@ import {
 const router = express.Router();
 const orderController = new OrderController();
 
-// All routes require authentication
-router.use(authenticateToken);
+
+// Guest route - no auth needed
+router.post('/', orderController.createOrder);
+
 
 // User routes
+// All routes require authentication
+router.use(authenticateToken);
 router.post('/', validateOrderCreation, orderController.createOrder);
 router.get('/my-orders', validatePagination, orderController.getMyOrders);
+router.get('/artisan-orders', authenticateToken, requireRole('artisan'), orderController.getArtisanOrders);
 router.get('/:id', validateUUID, orderController.getOrderById);
 router.put('/:id/cancel', validateUUID, orderController.cancelOrder);
+
 
 // Admin routes
 router.get('/', requireRole('admin'), validatePagination, orderController.getAllOrders);

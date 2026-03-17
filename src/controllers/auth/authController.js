@@ -7,14 +7,15 @@ export class AuthController {
   }
 
   register = asyncHandler(async (req, res) => {
-    const { firstName, lastName, email, password, role } = req.body;
+    const { firstName, lastName, email, password, role, phone } = req.body;
     
     const result = await this.authService.register({
       firstName,
       lastName,
       email,
       password,
-      role
+      role,
+       phone
     });
 
     res.status(201).json({
