@@ -3,7 +3,6 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import morgan from 'morgan';
-import 'reflect-metadata';
 
 
 import { initializeDatabase } from './config/database.js';
@@ -16,8 +15,6 @@ import { errorHandler, notFoundHandler } from './middleware/error/errorHandler.j
 import authRoutes from './routes/auth/authRoutes.js';
 import productRoutes from './routes/products/productRoutes.js';
 import orderRoutes from './routes/orders/orderRoutes.js';
-import courseRoutes from './routes/courses/courseRoutes.js';
-import paymentRoutes from './routes/payments/paymentRoutes.js';
 import categoryRoutes from './routes/categories/categoryRoutes.js';
 import contactRoutes from './routes/contact/contactRoutes.js';
 import adminRoutes from './routes/admin/adminRoutes.js';
@@ -78,8 +75,6 @@ app.use('/uploads', express.static('uploads'));
   app.use('/api/auth', authRoutes);
   app.use('/api/products', productRoutes);
   app.use('/api/orders', orderRoutes);
-  app.use('/api/courses', courseRoutes);
-  app.use('/api/payments', paymentRoutes);
   app.use('/api/categories', categoryRoutes);
   app.use('/api/contact', contactRoutes);
   app.use('/api/admin', adminRoutes);

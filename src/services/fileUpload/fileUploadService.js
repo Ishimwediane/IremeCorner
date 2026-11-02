@@ -14,8 +14,6 @@ const storage = multer.diskStorage({
       uploadPath = path.join(uploadPath, 'avatars');
     } else if (file.fieldname === 'productImages') {
       uploadPath = path.join(uploadPath, 'products');
-    } else if (file.fieldname === 'courseImages' || file.fieldname === 'courseThumbnail') {
-      uploadPath = path.join(uploadPath, 'courses');
     }
     
     cb(null, uploadPath);
@@ -64,8 +62,6 @@ export const upload = multer({
 // Specific upload configurations
 export const uploadAvatar = upload.single('avatar');
 export const uploadProductImages = upload.array('productImages', 5);
-export const uploadCourseImages = upload.array('courseImages', 5);
-export const uploadCourseThumbnail = upload.single('courseThumbnail');
 export const uploadDocuments = upload.array('documents', 10);
 
 export class FileUploadService {

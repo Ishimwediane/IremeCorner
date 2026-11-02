@@ -9,11 +9,7 @@ export const configs = {
   
   // Database Configuration
   database: {
-    host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT || '5432'),
-    username: process.env.DB_USERNAME || 'postgres',
-    password: process.env.DB_PASSWORD || '',
-    name: process.env.DB_NAME || 'iremecorner_db',
+    uri: process.env.MONGODB_URI || '',
   },
   
   // JWT Configuration
@@ -31,12 +27,6 @@ export const configs = {
     user: process.env.EMAIL_USER || '',
     pass: process.env.EMAIL_PASS || '',
     from: process.env.EMAIL_FROM || 'noreply@iremecorner.com',
-  },
-  
-  // Payment Configuration (WhatsApp)
-  whatsapp: {
-    phoneNumber: process.env.WHATSAPP_PHONE_NUMBER || '+1234567890',
-    messageTemplate: process.env.WHATSAPP_MESSAGE_TEMPLATE || 'Hello! I would like to make a payment for order {ORDER_NUMBER}. Amount: ${AMOUNT}',
   },
   
   // File Upload Configuration

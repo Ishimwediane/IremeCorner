@@ -1,48 +1,59 @@
-import { AppDataSource } from '../../config/database.js';
 import { Order, OrderStatus, PaymentStatus } from '../../entities/orders/Order.js';
-import { OrderItem } from '../../entities/orders/OrderItem.js';
 import { Product } from '../../entities/products/Product.js';
-import { User } from '../../entities/auth/User.js';
-import { Payment } from '../../entities/payments/Payment.js';
+import { User, UserRole, PUBLIC_USER_FIELDS } from '../../entities/auth/User.js';
 import { AppError } from '../../middleware/error/errorHandler.js';
 
+const SORTABLE_FIELDS = ['createdAt', 'updatedAt', 'totalAmount', 'status', 'orderNumber'];
+
+const buildSort = (sortBy, sortOrder) => {
+  const field = SORTABLE_FIELDS.includes(sortBy) ? sortBy : 'createdAt';
+  return { [field]: String(sortOrder).toUpperCase() === 'ASC' ? 1 : -1 };
+};
+
+const paginate = (page, limit) => {
+  const pageNumber = Math.max(parseInt(page) || 1, 1);
+  const pageSize = Math.max(parseInt(limit) || 20, 1);
+  return { pageNumber, pageSize, skip: (pageNumber - 1) * pageSize };
+};
+
+const withRelations = (query) => query
+  .populate({ path: 'buyer', select: PUBLIC_USER_FIELDS })
+  .populate('orderItems.product');
+
 export class OrderService {
-  constructor() {
-    this.orderRepository = AppDataSource.getRepository(Order);
-    this.orderItemRepository = AppDataSource.getRepository(OrderItem);
-    this.productRepository = AppDataSource.getRepository(Product);
-    this.userRepository = AppDataSource.getRepository(User);
-    this.paymentRepository = AppDataSource.getRepository(Payment);
-  }
-
   async createOrder(orderData, buyerId = null) {
-  const { items, shippingAddress, billingAddress, notes, guestName, guestPhone, guestEmail } = orderData;
+    const { items, shippingAddress, billingAddress, notes, guestName, guestPhone, guestEmail } = orderData;
 
-  // Verify buyer if logged in
-  if (buyerId) {
-    const buyer = await this.userRepository.findOne({ where: { id: buyerId } });
-    if (!buyer) throw new AppError('Buyer not found', 404);
-  } else {
-    // Guest order - require guest info
-    if (!guestName || !guestPhone) {
+    // Verify buyer if logged in
+    if (buyerId) {
+      const buyer = await User.exists({ _id: buyerId });
+      if (!buyer) throw new AppError('Buyer not found', 404);
+    } else if (!guestName || !guestPhone) {
+      // Guest order - require guest info
       throw new AppError('Guest name and phone are required', 400);
     }
-  }
+
+    if (!Array.isArray(items) || items.length === 0) {
+      throw new AppError('An order needs at least one item', 400);
+    }
 
     // Validate and calculate order items
     const orderItems = [];
     let subtotal = 0;
 
     for (const item of items) {
-      const product = await this.productRepository.findOne({
-        where: { id: item.productId, isActive: true }
-      });
+      const quantity = parseInt(item.quantity);
+      const product = await Product.findOne({ _id: item.productId, isActive: true });
 
       if (!product) {
         throw new AppError(`Product with ID ${item.productId} not found`, 404);
       }
 
-      if (product.stock < item.quantity) {
+      if (!Number.isInteger(quantity) || quantity < 1) {
+        throw new AppError(`Invalid quantity for product ${product.name}`, 400);
+      }
+
+      if (product.stock < quantity) {
         throw new AppError(`Insufficient stock for product ${product.name}`, 400);
       }
 
@@ -50,64 +61,68 @@ export class OrderService {
         throw new AppError(`Product ${product.name} is out of stock`, 400);
       }
 
-      const orderItem = this.orderItemRepository.create({
+      const total = product.price * quantity;
+      subtotal += total;
+      orderItems.push({
         productId: product.id,
-        quantity: item.quantity,
+        quantity,
         price: product.price,
         originalPrice: product.originalPrice,
+        total,
         productName: product.name,
         productImage: product.mainImage,
         productSpecifications: product.specifications
       });
-
-      orderItem.calculateTotal();
-      subtotal += orderItem.total;
-      orderItems.push(orderItem);
     }
 
-    // Create order
-    const order = this.orderRepository.create({
-      buyerId,
-      guestName: guestName || null,
-      guestPhone: guestPhone || null,
-      guestEmail: guestEmail || null,
-      subtotal,
-      totalAmount: subtotal, // Will be updated with tax, shipping, discount
-      shippingAddress,
-      billingAddress,
-      notes,
-      status: OrderStatus.PENDING,
-      paymentStatus: PaymentStatus.PENDING
-    });
+    // Reserve stock atomically so two buyers cannot take the last item; undo on any failure.
+    const reserved = [];
+    try {
+      for (const item of orderItems) {
+        const updated = await Product.findOneAndUpdate(
+          { _id: item.productId, stock: { $gte: item.quantity } },
+          { $inc: { stock: -item.quantity } }
+        );
+        if (!updated) {
+          throw new AppError(`Insufficient stock for product ${item.productName}`, 400);
+        }
+        reserved.push(item);
+      }
 
-    order.generateOrderNumber();
-    order.calculateTotal();
+      const order = new Order({
+        buyerId,
+        guestName: guestName || null,
+        guestPhone: guestPhone || null,
+        guestEmail: guestEmail || null,
+        subtotal,
+        totalAmount: subtotal, // Will be updated with tax, shipping, discount
+        shippingAddress,
+        billingAddress,
+        notes,
+        status: OrderStatus.PENDING,
+        paymentStatus: PaymentStatus.PENDING,
+        orderItems
+      });
 
-    // Save order first
-    const savedOrder = await this.orderRepository.save(order);
+      order.generateOrderNumber();
+      order.calculateTotal();
+      await order.save();
 
-    // Save order items with order reference
-    orderItems.forEach(item => {
-      item.orderId = savedOrder.id;
-    });
-    await this.orderItemRepository.save(orderItems);
-
-    // Update product stock
-    for (const item of orderItems) {
-      await this.productRepository.update(
-        { id: item.productId },
-        { stock: () => `stock - ${item.quantity}` }
-      );
+      return await this.getOrderById(order.id);
+    } catch (error) {
+      await this.adjustStock(reserved, 1);
+      throw error;
     }
+  }
 
-    return await this.getOrderById(savedOrder.id);
+  async adjustStock(items, direction) {
+    for (const item of items) {
+      await Product.updateOne({ _id: item.productId }, { $inc: { stock: direction * item.quantity } });
+    }
   }
 
   async getOrderById(id) {
-    const order = await this.orderRepository.findOne({
-      where: { id },
-      relations: ['buyer', 'orderItems', 'orderItems.product']
-    });
+    const order = await withRelations(Order.findById(id));
 
     if (!order) {
       throw new AppError('Order not found', 404);
@@ -116,112 +131,60 @@ export class OrderService {
     return order;
   }
 
-  async getOrdersByUser(userId, filters = {}) {
-    const {
-      page = 1,
-      limit = 20,
-      status,
-      paymentStatus,
-      sortBy = 'createdAt',
-      sortOrder = 'DESC'
-    } = filters;
+  async listOrders(query, filters) {
+    const { page, limit, sortBy, sortOrder } = filters;
+    const { pageNumber, pageSize, skip } = paginate(page, limit);
 
-    const queryBuilder = this.orderRepository
-      .createQueryBuilder('order')
-      .leftJoinAndSelect('order.orderItems', 'orderItems')
-      .leftJoinAndSelect('orderItems.product', 'product')
-      .where('order.buyerId = :userId', { userId });
-
-    if (status) {
-      queryBuilder.andWhere('order.status = :status', { status });
-    }
-
-    if (paymentStatus) {
-      queryBuilder.andWhere('order.paymentStatus = :paymentStatus', { paymentStatus });
-    }
-
-    queryBuilder.orderBy(`order.${sortBy}`, sortOrder);
-
-    const offset = (page - 1) * limit;
-    queryBuilder.skip(offset).take(limit);
-
-    const [orders, total] = await queryBuilder.getManyAndCount();
+    const [orders, total] = await Promise.all([
+      withRelations(Order.find(query).sort(buildSort(sortBy, sortOrder)).skip(skip).limit(pageSize)),
+      Order.countDocuments(query)
+    ]);
 
     return {
       orders,
       pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page: pageNumber,
+        limit: pageSize,
         total,
-        pages: Math.ceil(total / limit)
+        pages: Math.ceil(total / pageSize)
       }
     };
+  }
+
+  async getOrdersByUser(userId, filters = {}) {
+    const query = { buyerId: userId };
+    if (filters.status) query.status = filters.status;
+    if (filters.paymentStatus) query.paymentStatus = filters.paymentStatus;
+
+    return this.listOrders(query, filters);
   }
 
   async getAllOrders(filters = {}) {
-    const {
-      page = 1,
-      limit = 20,
-      status,
-      paymentStatus,
-      buyerId,
-      sortBy = 'createdAt',
-      sortOrder = 'DESC'
-    } = filters;
+    const query = {};
+    if (filters.status) query.status = filters.status;
+    if (filters.paymentStatus) query.paymentStatus = filters.paymentStatus;
+    if (filters.buyerId) query.buyerId = filters.buyerId;
 
-    const queryBuilder = this.orderRepository
-      .createQueryBuilder('order')
-      .leftJoinAndSelect('order.buyer', 'buyer')
-      .leftJoinAndSelect('order.orderItems', 'orderItems')
-      .leftJoinAndSelect('orderItems.product', 'product');
+    return this.listOrders(query, filters);
+  }
 
-    if (status) {
-      queryBuilder.andWhere('order.status = :status', { status });
+  async assertCanChange(order, userId, action) {
+    if (order.buyerId === userId) return;
+    const isAdmin = await User.exists({ _id: userId, role: UserRole.ADMIN });
+    if (!isAdmin) {
+      throw new AppError(`Unauthorized to ${action} this order`, 403);
     }
-
-    if (paymentStatus) {
-      queryBuilder.andWhere('order.paymentStatus = :paymentStatus', { paymentStatus });
-    }
-
-    if (buyerId) {
-      queryBuilder.andWhere('order.buyerId = :buyerId', { buyerId });
-    }
-
-    queryBuilder.orderBy(`order.${sortBy}`, sortOrder);
-
-    const offset = (page - 1) * limit;
-    queryBuilder.skip(offset).take(limit);
-
-    const [orders, total] = await queryBuilder.getManyAndCount();
-
-    return {
-      orders,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total,
-        pages: Math.ceil(total / limit)
-      }
-    };
   }
 
   async updateOrderStatus(id, status, userId) {
-    const order = await this.orderRepository.findOne({
-      where: { id },
-      relations: ['buyer']
-    });
+    const order = await Order.findById(id);
 
     if (!order) {
       throw new AppError('Order not found', 404);
     }
 
     // Check permissions
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-    const canUpdate = user.role === 'admin' || order.buyerId === userId;
-
-    if (!canUpdate) {
-      throw new AppError('Unauthorized to update this order', 403);
-    }
+    await this.assertCanChange(order, userId, 'update');
 
     // Validate status transition
     const validTransitions = {
@@ -251,15 +214,15 @@ export class OrderService {
       case OrderStatus.CANCELLED:
         order.cancelledAt = new Date();
         // Restore product stock
-        await this.restoreProductStock(order.id);
+        await this.adjustStock(order.orderItems, 1);
         break;
     }
 
-    return await this.orderRepository.save(order);
+    return await order.save();
   }
 
   async updatePaymentStatus(id, paymentStatus, paymentReference) {
-    const order = await this.orderRepository.findOne({ where: { id } });
+    const order = await Order.findById(id);
     if (!order) {
       throw new AppError('Order not found', 404);
     }
@@ -271,26 +234,18 @@ export class OrderService {
       order.status = OrderStatus.CONFIRMED;
     }
 
-    return await this.orderRepository.save(order);
+    return await order.save();
   }
 
   async cancelOrder(id, userId) {
-    const order = await this.orderRepository.findOne({
-      where: { id },
-      relations: ['buyer']
-    });
+    const order = await Order.findById(id);
 
     if (!order) {
       throw new AppError('Order not found', 404);
     }
 
     // Check permissions
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-    const canCancel = user.role === 'admin' || order.buyerId === userId;
-
-    if (!canCancel) {
-      throw new AppError('Unauthorized to cancel this order', 403);
-    }
+    await this.assertCanChange(order, userId, 'cancel');
 
     if (!order.canBeCancelled()) {
       throw new AppError('Order cannot be cancelled at this stage', 400);
@@ -300,64 +255,34 @@ export class OrderService {
     order.cancelledAt = new Date();
 
     // Restore product stock
-    await this.restoreProductStock(order.id);
+    await this.adjustStock(order.orderItems, 1);
 
-    return await this.orderRepository.save(order);
-  }
-
-  async restoreProductStock(orderId) {
-    const orderItems = await this.orderItemRepository.find({
-      where: { orderId }
-    });
-
-    for (const item of orderItems) {
-      await this.productRepository.update(
-        { id: item.productId },
-        { stock: () => `stock + ${item.quantity}` }
-      );
-    }
+    return await order.save();
   }
 
   async getOrderStatistics() {
-    const totalOrders = await this.orderRepository.count();
-    const totalRevenue = await this.orderRepository
-      .createQueryBuilder('order')
-      .select('SUM(order.totalAmount)', 'total')
-      .where('order.paymentStatus = :status', { status: PaymentStatus.PAID })
-      .getRawOne();
-
-    const ordersByStatus = await this.orderRepository
-      .createQueryBuilder('order')
-      .select('order.status', 'status')
-      .addSelect('COUNT(*)', 'count')
-      .groupBy('order.status')
-      .getRawMany();
+    const [totalOrders, revenue, ordersByStatus] = await Promise.all([
+      Order.countDocuments(),
+      Order.aggregate([
+        { $match: { paymentStatus: PaymentStatus.PAID } },
+        { $group: { _id: null, total: { $sum: '$totalAmount' } } }
+      ]),
+      Order.aggregate([
+        { $group: { _id: '$status', count: { $sum: 1 } } },
+        { $project: { _id: 0, status: '$_id', count: 1 } }
+      ])
+    ]);
 
     return {
       totalOrders,
-      totalRevenue: parseFloat(totalRevenue.total) || 0,
+      totalRevenue: revenue[0]?.total || 0,
       ordersByStatus
     };
   }
+
   async getOrdersByArtisan(artisanId, filters = {}) {
-  const { page = 1, limit = 20 } = filters;
-
-  const queryBuilder = this.orderRepository
-    .createQueryBuilder('order')
-    .leftJoinAndSelect('order.orderItems', 'orderItems')
-    .leftJoinAndSelect('orderItems.product', 'product')
-    .leftJoinAndSelect('order.buyer', 'buyer')
-    .where('product.artisanId = :artisanId', { artisanId });
-
-  const offset = (page - 1) * limit;
-  queryBuilder.skip(offset).take(limit).orderBy('order.createdAt', 'DESC');
-
-  const [orders, total] = await queryBuilder.getManyAndCount();
-
-  return {
-    orders,
-    pagination: { page: parseInt(page), limit: parseInt(limit), total }
-  };
+    const productIds = await Product.find({ artisanId }).distinct('_id');
+    const result = await this.listOrders({ 'orderItems.productId': { $in: productIds } }, filters);
+    return { orders: result.orders, pagination: result.pagination };
+  }
 }
-}
-

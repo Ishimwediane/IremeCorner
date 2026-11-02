@@ -1,14 +1,9 @@
-import { AppDataSource } from '../../config/database.js';
 import { ContactMessage, ContactMessageStatus } from '../../entities/contact/ContactMessage.js';
 import { AppError } from '../../middleware/error/errorHandler.js';
 
 export class ContactService {
-  constructor() {
-    this.contactRepository = AppDataSource.getRepository(ContactMessage);
-  }
-
   async createMessage({ name, email, phone, subject, message }) {
-    const contactMessage = this.contactRepository.create({
+    return await ContactMessage.create({
       name,
       email,
       phone: phone || null,
@@ -16,50 +11,41 @@ export class ContactService {
       message,
       status: ContactMessageStatus.NEW
     });
-
-    return await this.contactRepository.save(contactMessage);
   }
 
   async getMessages(filters = {}) {
-    const { page = 1, limit = 20, status } = filters;
+    const pageNumber = Math.max(parseInt(filters.page) || 1, 1);
+    const pageSize = Math.max(parseInt(filters.limit) || 20, 1);
+    const query = filters.status ? { status: filters.status } : {};
 
-    const queryBuilder = this.contactRepository
-      .createQueryBuilder('message')
-      .orderBy('message.createdAt', 'DESC');
-
-    if (status) {
-      queryBuilder.where('message.status = :status', { status });
-    }
-
-    const offset = (page - 1) * limit;
-    queryBuilder.skip(offset).take(limit);
-
-    const [messages, total] = await queryBuilder.getManyAndCount();
+    const [messages, total] = await Promise.all([
+      ContactMessage.find(query).sort({ createdAt: -1 }).skip((pageNumber - 1) * pageSize).limit(pageSize),
+      ContactMessage.countDocuments(query)
+    ]);
 
     return {
       messages,
       pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page: pageNumber,
+        limit: pageSize,
         total,
-        pages: Math.ceil(total / limit)
+        pages: Math.ceil(total / pageSize)
       }
     };
   }
 
   async updateStatus(id, status) {
-    const contactMessage = await this.contactRepository.findOne({ where: { id } });
+    const contactMessage = await ContactMessage.findByIdAndUpdate(id, { status }, { new: true });
     if (!contactMessage) {
       throw new AppError('Message not found', 404);
     }
 
-    contactMessage.status = status;
-    return await this.contactRepository.save(contactMessage);
+    return contactMessage;
   }
 
   async deleteMessage(id) {
-    const result = await this.contactRepository.delete({ id });
-    if (!result.affected) {
+    const result = await ContactMessage.deleteOne({ _id: id });
+    if (!result.deletedCount) {
       throw new AppError('Message not found', 404);
     }
 
@@ -67,6 +53,6 @@ export class ContactService {
   }
 
   async countByStatus(status) {
-    return await this.contactRepository.count({ where: { status } });
+    return await ContactMessage.countDocuments({ status });
   }
 }

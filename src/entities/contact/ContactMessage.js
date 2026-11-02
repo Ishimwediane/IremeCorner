@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import mongoose from 'mongoose';
+import { uuidId, baseSchemaOptions } from '../schemaOptions.js';
 
 export const ContactMessageStatus = {
   NEW: 'new',
@@ -6,32 +7,16 @@ export const ContactMessageStatus = {
   REPLIED: 'replied',
 };
 
-@Entity('contact_messages')
-export class ContactMessage {
-  @PrimaryGeneratedColumn('uuid')
-  id;
+const contactMessageSchema = new mongoose.Schema({
+  _id: uuidId,
+  name: { type: String, required: true, maxlength: 100 },
+  email: { type: String, required: true, maxlength: 255 },
+  phone: { type: String, maxlength: 30, default: null },
+  subject: { type: String, maxlength: 200, default: null },
+  message: { type: String, required: true },
+  status: { type: String, enum: Object.values(ContactMessageStatus), default: ContactMessageStatus.NEW },
+}, baseSchemaOptions);
 
-  @Column({ type: 'varchar', length: 100 })
-  name;
+contactMessageSchema.index({ status: 1, createdAt: -1 });
 
-  @Column({ type: 'varchar', length: 255 })
-  email;
-
-  @Column({ type: 'varchar', length: 30, nullable: true })
-  phone;
-
-  @Column({ type: 'varchar', length: 200, nullable: true })
-  subject;
-
-  @Column({ type: 'text' })
-  message;
-
-  @Column({ type: 'varchar', length: 20, default: ContactMessageStatus.NEW })
-  status;
-
-  @CreateDateColumn()
-  createdAt;
-
-  @UpdateDateColumn()
-  updatedAt;
-}
+export const ContactMessage = mongoose.model('ContactMessage', contactMessageSchema);

@@ -8,34 +8,22 @@ export const errorHandler = (err, req, res, next) => {
     statusCode: 500
   };
 
-  // TypeORM errors
-  if (err.name === 'QueryFailedError') {
-    error.message = 'Database operation failed';
+  // Mongoose validation errors (schema rules)
+  if (err.name === 'ValidationError') {
+    error.message = Object.values(err.errors || {}).map(e => e.message).join(', ') || err.message;
     error.statusCode = 400;
   }
 
-  // Validation errors
-  if (err.name === 'ValidationError') {
-    error.message = err.message;
+  // Invalid value for a field type (e.g. a malformed id)
+  if (err.name === 'CastError') {
+    error.message = `Invalid value for ${err.path}`;
     error.statusCode = 400;
   }
 
   // Duplicate key errors
-  if (err.code === '23505') {
+  if (err.code === 11000) {
     error.message = 'Resource already exists';
     error.statusCode = 409;
-  }
-
-  // Foreign key constraint errors
-  if (err.code === '23503') {
-    error.message = 'Referenced resource not found';
-    error.statusCode = 400;
-  }
-
-  // Not null constraint errors
-  if (err.code === '23502') {
-    error.message = 'Required field is missing';
-    error.statusCode = 400;
   }
 
   // Custom application errors

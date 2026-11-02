@@ -1,150 +1,131 @@
-import { AppDataSource } from '../../config/database.js';
 import { Product, ProductStatus } from '../../entities/products/Product.js';
 import { Category } from '../../entities/products/Category.js';
-import { User } from '../../entities/auth/User.js';
+import { User, UserRole, PUBLIC_USER_FIELDS } from '../../entities/auth/User.js';
+import { escapeRegex } from '../../entities/schemaOptions.js';
 import { AppError } from '../../middleware/error/errorHandler.js';
 
-export class ProductService {
-  constructor() {
-    this.productRepository = AppDataSource.getRepository(Product);
-    this.categoryRepository = AppDataSource.getRepository(Category);
-    this.userRepository = AppDataSource.getRepository(User);
-  }
+const SORTABLE_FIELDS = ['createdAt', 'updatedAt', 'name', 'price', 'stock', 'views', 'sales', 'rating'];
 
+const buildSort = (sortBy, sortOrder) => {
+  const field = SORTABLE_FIELDS.includes(sortBy) ? sortBy : 'createdAt';
+  return { [field]: String(sortOrder).toUpperCase() === 'ASC' ? 1 : -1 };
+};
+
+const paginate = (page, limit) => {
+  const pageNumber = Math.max(parseInt(page) || 1, 1);
+  const pageSize = Math.max(parseInt(limit) || 20, 1);
+  return { pageNumber, pageSize, skip: (pageNumber - 1) * pageSize };
+};
+
+const withRelations = (query) => query
+  .populate({ path: 'artisan', select: PUBLIC_USER_FIELDS })
+  .populate('category');
+
+export class ProductService {
   async createProduct(productData, artisanId) {
     const { categoryId, ...productInfo } = productData;
 
     // Verify the owner exists (an artisan, or the admin managing the store)
-    const artisan = await this.userRepository.findOne({
-      where: [
-        { id: artisanId, role: 'artisan' },
-        { id: artisanId, role: 'admin' }
-      ]
-    });
+    const artisan = await User.exists({ _id: artisanId, role: { $in: [UserRole.ARTISAN, UserRole.ADMIN] } });
     if (!artisan) {
       throw new AppError('Artisan not found', 404);
     }
 
     // Verify category exists
-    const category = await this.categoryRepository.findOne({ 
-      where: { id: categoryId, type: 'product' } 
-    });
+    const category = await Category.exists({ _id: categoryId, isActive: true });
     if (!category) {
       throw new AppError('Category not found', 404);
     }
 
-    const product = this.productRepository.create({
+    const product = await Product.create({
       ...productInfo,
       artisanId,
       categoryId,
       status: ProductStatus.ACTIVE
     });
 
-    return await this.productRepository.save(product);
+    return await withRelations(Product.findById(product._id));
   }
 
   async getProducts(filters = {}) {
     const {
-      page = 1,
-      limit = 20,
+      page,
+      limit,
       categoryId,
       artisanId,
       status = ProductStatus.ACTIVE,
       minPrice,
       maxPrice,
       search,
-      sortBy = 'createdAt',
-      sortOrder = 'DESC'
+      sortBy,
+      sortOrder
     } = filters;
 
-    const queryBuilder = this.productRepository
-      .createQueryBuilder('product')
-      .leftJoinAndSelect('product.artisan', 'artisan')
-      .leftJoinAndSelect('product.category', 'category')
-      .where('product.isActive = :isActive', { isActive: true });
+    const query = { isActive: true };
 
-    // Apply filters
-    if (categoryId) {
-      queryBuilder.andWhere('product.categoryId = :categoryId', { categoryId });
-    }
+    if (categoryId) query.categoryId = categoryId;
+    if (artisanId) query.artisanId = artisanId;
+    if (status) query.status = status;
 
-    if (artisanId) {
-      queryBuilder.andWhere('product.artisanId = :artisanId', { artisanId });
-    }
-
-    if (status) {
-      queryBuilder.andWhere('product.status = :status', { status });
-    }
-
-    if (minPrice !== undefined) {
-      queryBuilder.andWhere('product.price >= :minPrice', { minPrice });
-    }
-
-    if (maxPrice !== undefined) {
-      queryBuilder.andWhere('product.price <= :maxPrice', { maxPrice });
+    if (minPrice !== undefined || maxPrice !== undefined) {
+      query.price = {};
+      if (minPrice !== undefined) query.price.$gte = Number(minPrice);
+      if (maxPrice !== undefined) query.price.$lte = Number(maxPrice);
     }
 
     if (search) {
-      queryBuilder.andWhere(
-        '(product.name ILIKE :search OR product.description ILIKE :search OR product.tags::text ILIKE :search)',
-        { search: `%${search}%` }
-      );
+      const pattern = new RegExp(escapeRegex(String(search)), 'i');
+      query.$or = [{ name: pattern }, { description: pattern }, { tags: pattern }];
     }
 
-    // Apply sorting
-    queryBuilder.orderBy(`product.${sortBy}`, sortOrder);
+    const { pageNumber, pageSize, skip } = paginate(page, limit);
 
-    // Apply pagination
-    const offset = (page - 1) * limit;
-    queryBuilder.skip(offset).take(limit);
-
-    const [products, total] = await queryBuilder.getManyAndCount();
+    const [products, total] = await Promise.all([
+      withRelations(Product.find(query).sort(buildSort(sortBy, sortOrder)).skip(skip).limit(pageSize)),
+      Product.countDocuments(query)
+    ]);
 
     return {
       products,
       pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page: pageNumber,
+        limit: pageSize,
         total,
-        pages: Math.ceil(total / limit)
+        pages: Math.ceil(total / pageSize)
       }
     };
   }
 
   async getProductById(id) {
-    const product = await this.productRepository.findOne({
-      where: { id, isActive: true },
-      relations: ['artisan', 'category']
-    });
+    // Increment view count while fetching
+    const product = await withRelations(
+      Product.findOneAndUpdate({ _id: id, isActive: true }, { $inc: { views: 1 } }, { new: true })
+    );
 
     if (!product) {
       throw new AppError('Product not found', 404);
     }
 
-    // Increment view count
-    product.views += 1;
-    await this.productRepository.save(product);
-
     return product;
   }
 
+  async assertCanManage(product, userId) {
+    if (product.artisanId === userId) return;
+    const isAdmin = await User.exists({ _id: userId, role: UserRole.ADMIN });
+    if (!isAdmin) {
+      throw new AppError('Unauthorized to update this product', 403);
+    }
+  }
+
   async updateProduct(id, updateData, userId) {
-    const product = await this.productRepository.findOne({
-      where: { id },
-      relations: ['artisan']
-    });
+    const product = await Product.findById(id);
 
     if (!product) {
       throw new AppError('Product not found', 404);
     }
 
     // Check if user is the artisan or admin
-    if (product.artisanId !== userId) {
-      const user = await this.userRepository.findOne({ where: { id: userId } });
-      if (!user || user.role !== 'admin') {
-        throw new AppError('Unauthorized to update this product', 403);
-      }
-    }
+    await this.assertCanManage(product, userId);
 
     // Update allowed fields
     const allowedFields = [
@@ -160,141 +141,100 @@ export class ProductService {
     });
 
     if (updateData.categoryId && updateData.categoryId !== product.categoryId) {
-      const category = await this.categoryRepository.findOne({
-        where: { id: updateData.categoryId, type: 'product' }
-      });
+      const category = await Category.exists({ _id: updateData.categoryId, isActive: true });
       if (!category) {
         throw new AppError('Category not found', 404);
       }
       product.categoryId = updateData.categoryId;
-      product.category = category;
     }
 
-    return await this.productRepository.save(product);
+    await product.save();
+    return await withRelations(Product.findById(product._id));
   }
 
   async deleteProduct(id, userId) {
-    const product = await this.productRepository.findOne({
-      where: { id },
-      relations: ['artisan']
-    });
+    const product = await Product.findById(id);
 
     if (!product) {
       throw new AppError('Product not found', 404);
     }
 
     // Check if user is the artisan or admin
-    if (product.artisanId !== userId) {
-      const user = await this.userRepository.findOne({ where: { id: userId } });
-      if (!user || user.role !== 'admin') {
-        throw new AppError('Unauthorized to delete this product', 403);
-      }
-    }
+    await this.assertCanManage(product, userId);
 
     // Soft delete by setting isActive to false
     product.isActive = false;
-    await this.productRepository.save(product);
+    await product.save();
 
     return { message: 'Product deleted successfully' };
   }
 
   async getProductsByArtisan(artisanId, filters = {}) {
-    const {
-      page = 1,
-      limit = 20,
-      status,
-      sortBy = 'createdAt',
-      sortOrder = 'DESC'
-    } = filters;
+    const { page, limit, status, sortBy, sortOrder } = filters;
 
-    const queryBuilder = this.productRepository
-      .createQueryBuilder('product')
-      .leftJoinAndSelect('product.category', 'category')
-      .where('product.artisanId = :artisanId', { artisanId })
-      .andWhere('product.isActive = :isActive', { isActive: true });
+    const query = { artisanId, isActive: true };
+    if (status) query.status = status;
 
-    if (status) {
-      queryBuilder.andWhere('product.status = :status', { status });
-    }
+    const { pageNumber, pageSize, skip } = paginate(page, limit);
 
-    queryBuilder.orderBy(`product.${sortBy}`, sortOrder);
-
-    const offset = (page - 1) * limit;
-    queryBuilder.skip(offset).take(limit);
-
-    const [products, total] = await queryBuilder.getManyAndCount();
+    const [products, total] = await Promise.all([
+      Product.find(query).populate('category').sort(buildSort(sortBy, sortOrder)).skip(skip).limit(pageSize),
+      Product.countDocuments(query)
+    ]);
 
     return {
       products,
       pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page: pageNumber,
+        limit: pageSize,
         total,
-        pages: Math.ceil(total / limit)
+        pages: Math.ceil(total / pageSize)
       }
     };
   }
 
   async updateProductRating(productId, rating) {
-    const product = await this.productRepository.findOne({ where: { id: productId } });
+    const product = await Product.findById(productId);
     if (!product) {
       throw new AppError('Product not found', 404);
     }
 
     product.updateRating(rating);
-    return await this.productRepository.save(product);
+    return await product.save();
+  }
+
+  async listActive(sort, limit) {
+    return await withRelations(
+      Product.find({ isActive: true, status: ProductStatus.ACTIVE }).sort(sort).limit(limit)
+    );
   }
 
   async getFeaturedProducts(limit = 10) {
-    return await this.productRepository.find({
-      where: { 
-        isActive: true, 
-        status: ProductStatus.ACTIVE 
-      },
-      relations: ['artisan', 'category'],
-      order: { rating: 'DESC', sales: 'DESC' },
-      take: limit
-    });
+    return this.listActive({ rating: -1, sales: -1 }, limit);
   }
 
   async getPopularProducts(limit = 10) {
-    return await this.productRepository.find({
-      where: { 
-        isActive: true, 
-        status: ProductStatus.ACTIVE 
-      },
-      relations: ['artisan', 'category'],
-      order: { views: 'DESC', sales: 'DESC' },
-      take: limit
-    });
+    return this.listActive({ views: -1, sales: -1 }, limit);
   }
 
   async getNewProducts(limit = 10) {
-    return await this.productRepository.find({
-      where: { 
-        isActive: true, 
-        status: ProductStatus.ACTIVE 
-      },
-      relations: ['artisan', 'category'],
-      order: { createdAt: 'DESC' },
-      take: limit
-    });
+    return this.listActive({ createdAt: -1 }, limit);
   }
 
   async updateProductStock(productId, quantity) {
-    const product = await this.productRepository.findOne({ where: { id: productId } });
+    const product = await Product.findById(productId);
     if (!product) {
       throw new AppError('Product not found', 404);
     }
 
     product.stock = Math.max(0, product.stock - quantity);
-    
+
     if (product.stock === 0) {
       product.status = ProductStatus.OUT_OF_STOCK;
     } else if (product.status === ProductStatus.OUT_OF_STOCK) {
       product.status = ProductStatus.ACTIVE;
     }
 
-    return await this.productRepository.save(product);
+    return await product.save();
   }
 }

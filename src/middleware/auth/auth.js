@@ -1,7 +1,13 @@
 import jwt from 'jsonwebtoken';
-import { AppDataSource } from '../../config/database.js';
 import { User } from '../../entities/auth/User.js';
 import { configs } from '../../config/index.js';
+
+const AUTH_USER_FIELDS = 'email firstName lastName role isActive isEmailVerified';
+
+const findAuthUser = async (userId) => {
+  const user = await User.findById(userId).select(AUTH_USER_FIELDS);
+  return user ? user.toJSON() : null;
+};
 
 export const authenticateToken = async (req, res, next) => {
   try {
@@ -16,11 +22,7 @@ export const authenticateToken = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, configs.jwt.secret);
-    const userRepository = AppDataSource.getRepository(User);
-    const user = await userRepository.findOne({ 
-      where: { id: decoded.userId },
-      select: ['id', 'email', 'firstName', 'lastName', 'role', 'isActive', 'isEmailVerified']
-    });
+    const user = await findAuthUser(decoded.userId);
 
     if (!user) {
       return res.status(401).json({ 
@@ -106,11 +108,7 @@ export const optionalAuth = async (req, res, next) => {
 
     if (token) {
       const decoded = jwt.verify(token, configs.jwt.secret);
-      const userRepository = AppDataSource.getRepository(User);
-      const user = await userRepository.findOne({ 
-        where: { id: decoded.userId },
-        select: ['id', 'email', 'firstName', 'lastName', 'role', 'isActive', 'isEmailVerified']
-      });
+      const user = await findAuthUser(decoded.userId);
 
       if (user && user.isActive) {
         req.user = user;

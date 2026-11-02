@@ -1,17 +1,16 @@
-import { AppDataSource } from '../config/database.js';
+import { initializeDatabase, closeDatabase } from '../config/database.js';
 import { ensureDefaultCategories } from '../utils/bootstrap.js';
 
 async function seedCategories() {
   try {
-    await AppDataSource.initialize();
-    console.log('Database connected');
+    await initializeDatabase();
 
     const created = await ensureDefaultCategories();
     console.log(created.length
       ? `✓ Created categories: ${created.join(', ')}`
       : '- All default categories already exist');
 
-    await AppDataSource.destroy();
+    await closeDatabase();
     process.exit(0);
   } catch (error) {
     console.error('Error seeding categories:', error);

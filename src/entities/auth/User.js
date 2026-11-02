@@ -1,125 +1,52 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, BeforeInsert, BeforeUpdate } from 'typeorm';
+import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
-import { Product } from '../products/Product.js';
-import { Order } from '../orders/Order.js';
-import { Course } from '../courses/Course.js';
-import { Enrollment } from '../courses/Enrollment.js';
-import { Payment } from '../payments/Payment.js';
-import { Notification } from '../notifications/Notification.js';
+import { uuidId, baseSchemaOptions } from '../schemaOptions.js';
 
 export const UserRole = {
   BUYER: 'buyer',
   ARTISAN: 'artisan',
-  STUDENT: 'student',
   ADMIN: 'admin',
 };
 
-@Entity('users')
-export class User {
-  @PrimaryGeneratedColumn('uuid')
-  id;
+const userSchema = new mongoose.Schema({
+  _id: uuidId,
+  firstName: { type: String, required: true, maxlength: 100 },
+  lastName: { type: String, required: true, maxlength: 100 },
+  email: { type: String, required: true, unique: true, lowercase: true, trim: true, maxlength: 255 },
+  password: { type: String, required: true, select: false },
+  phone: { type: String, maxlength: 20, default: null },
+  avatar: { type: String, maxlength: 500, default: null },
+  role: { type: String, enum: Object.values(UserRole), default: UserRole.BUYER },
+  isEmailVerified: { type: Boolean, default: false },
+  isActive: { type: Boolean, default: true },
+  bio: { type: String, maxlength: 500, default: null },
+  address: { type: String, maxlength: 255, default: null },
+  city: { type: String, maxlength: 100, default: null },
+  state: { type: String, maxlength: 100, default: null },
+  zipCode: { type: String, maxlength: 20, default: null },
+  country: { type: String, maxlength: 100, default: null },
+  website: { type: String, maxlength: 255, default: null },
+  socialMedia: { type: String, maxlength: 255, default: null },
+  rating: { type: Number, default: 0 },
+  totalReviews: { type: Number, default: 0 },
+}, baseSchemaOptions);
 
-  @Column({ type: 'varchar', length: 100 })
-  firstName;
-
-  @Column({ type: 'varchar', length: 100 })
-  lastName;
-
-  @Column({ type: 'varchar', length: 255, unique: true })
-  email;
-
-  @Column({ type: 'varchar', length: 255 })
-  password;
-
-  @Column({ type: 'varchar', length: 20, nullable: true })
-  phone;
-
-  @Column({ type: 'varchar', length: 500, nullable: true })
-  avatar;
-
-  @Column({ type: 'enum', enum: Object.values(UserRole), default: UserRole.BUYER })
-  role;
-
-  @Column({ type: 'boolean', default: false })
-  isEmailVerified;
-
-  @Column({ type: 'boolean', default: true })
-  isActive;
-
-  @Column({ type: 'varchar', length: 500, nullable: true })
-  bio;
-
-  @Column({ type: 'varchar', length: 255, nullable: true })
-  address;
-
-  @Column({ type: 'varchar', length: 100, nullable: true })
-  city;
-
-  @Column({ type: 'varchar', length: 100, nullable: true })
-  state;
-
-  @Column({ type: 'varchar', length: 20, nullable: true })
-  zipCode;
-
-  @Column({ type: 'varchar', length: 100, nullable: true })
-  country;
-
-  @Column({ type: 'varchar', length: 255, nullable: true })
-  website;
-
-  @Column({ type: 'varchar', length: 255, nullable: true })
-  socialMedia;
-
-  @Column({ type: 'decimal', precision: 5, scale: 2, default: 0 })
-  rating;
-
-  @Column({ type: 'int', default: 0 })
-  totalReviews;
-
-  @CreateDateColumn()
-  createdAt;
-
-  @UpdateDateColumn()
-  updatedAt;
-
-  // Relations
-  @OneToMany(() => Product, product => product.artisan)
-  products;
-
-  @OneToMany(() => Order, order => order.buyer)
-  orders;
-
-  @OneToMany(() => Course, course => course.instructor)
-  courses;
-
-  @OneToMany(() => Enrollment, enrollment => enrollment.student)
-  enrollments;
-
-  @OneToMany(() => Payment, payment => payment.user)
-  payments;
-
-  @OneToMany(() => Notification, notification => notification.user)
-  notifications;
-
-  // Methods
-  @BeforeInsert()
-  @BeforeUpdate()
-  async hashPassword() {
-    if (this.password) {
-      this.password = await bcrypt.hash(this.password, 12);
-    }
+// Hash only when the password changes, so saving a user never double-hashes it.
+userSchema.pre('save', async function hashPassword() {
+  if (this.isModified('password')) {
+    this.password = await bcrypt.hash(this.password, 12);
   }
+});
 
-  async comparePassword(candidatePassword) {
-    return bcrypt.compare(candidatePassword, this.password);
-  }
+userSchema.methods.comparePassword = function comparePassword(candidatePassword) {
+  return bcrypt.compare(candidatePassword, this.password);
+};
 
-  getFullName() {
-    return `${this.firstName} ${this.lastName}`;
-  }
+userSchema.methods.getFullName = function getFullName() {
+  return `${this.firstName} ${this.lastName}`;
+};
 
-  toJSON() {
-    const { password, ...userWithoutPassword } = this;
-    return userWithoutPassword;
-  }
-}
+// Public fields safe to include when another document references a user.
+export const PUBLIC_USER_FIELDS = 'firstName lastName email phone avatar role';
+
+export const User = mongoose.model('User', userSchema);

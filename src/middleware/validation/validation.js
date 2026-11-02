@@ -41,7 +41,7 @@ export const validateUserRegistration = [
   
   body('role')
     .optional()
-    .isIn(['buyer', 'artisan', 'student'])
+    .isIn(['buyer', 'artisan'])
     .withMessage('Invalid role specified'),
   
   handleValidationErrors
@@ -184,39 +184,6 @@ export const validateOrderCreation = [
     .trim()
     .isLength({ min: 10, max: 500 })
     .withMessage('Billing address must be between 10 and 500 characters'),
-  
-  handleValidationErrors
-];
-
-// Course validation rules
-export const validateCourseCreation = [
-  body('title')
-    .trim()
-    .isLength({ min: 3, max: 200 })
-    .withMessage('Course title must be between 3 and 200 characters'),
-  
-  body('description')
-    .trim()
-    .isLength({ min: 20, max: 2000 })
-    .withMessage('Description must be between 20 and 2000 characters'),
-  
-  body('price')
-    .isFloat({ min: 0 })
-    .withMessage('Price must be a non-negative number'),
-  
-  body('categoryId')
-    .isUUID()
-    .withMessage('Invalid category ID'),
-  
-  body('level')
-    .optional()
-    .isIn(['beginner', 'intermediate', 'advanced'])
-    .withMessage('Invalid course level'),
-  
-  body('duration')
-    .optional()
-    .isInt({ min: 0 })
-    .withMessage('Duration must be a non-negative integer'),
   
   handleValidationErrors
 ];

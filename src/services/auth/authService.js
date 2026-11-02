@@ -1,43 +1,27 @@
 import jwt from 'jsonwebtoken';
-import { AppDataSource } from '../../config/database.js';
 import { User, UserRole } from '../../entities/auth/User.js';
 import { configs } from '../../config/index.js';
 import { AppError } from '../../middleware/error/errorHandler.js';
 
-export class AuthService {
-  constructor() {
-    this.userRepository = AppDataSource.getRepository(User);
-  }
+const PROFILE_FIELDS = 'email firstName lastName role phone avatar bio address city state zipCode country website socialMedia rating totalReviews isEmailVerified createdAt';
 
+export class AuthService {
   async register(userData) {
-    const { email, password, firstName, lastName, role = UserRole.BUYER,phone } = userData;
+    const { email, password, firstName, lastName, role = UserRole.BUYER, phone } = userData;
 
     // Check if user already exists
-    const existingUser = await this.userRepository.findOne({ where: { email } });
+    const existingUser = await User.exists({ email: email.toLowerCase() });
     if (existingUser) {
       throw new AppError('User with this email already exists', 409);
     }
 
-    // Create new user
-    const user = this.userRepository.create({
-      email,
-      password,
-      firstName,
-      lastName,
-      role,
-      phone
-    });
-
-    const savedUser = await this.userRepository.save(user);
+    const savedUser = await User.create({ email, password, firstName, lastName, role, phone });
     return this.generateTokens(savedUser);
   }
 
   async login(email, password) {
     // Find user with password
-    const user = await this.userRepository.findOne({ 
-      where: { email },
-      select: ['id', 'email', 'password', 'firstName', 'lastName', 'role','phone', 'isActive', 'isEmailVerified']
-    });
+    const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
 
     if (!user) {
       throw new AppError('Invalid email or password', 401);
@@ -59,10 +43,7 @@ export class AuthService {
   async refreshToken(refreshToken) {
     try {
       const decoded = jwt.verify(refreshToken, configs.jwt.refreshSecret);
-      const user = await this.userRepository.findOne({ 
-        where: { id: decoded.userId },
-        select: ['id', 'email', 'firstName', 'lastName', 'role','phone', 'isActive', 'isEmailVerified']
-      });
+      const user = await User.findById(decoded.userId);
 
       if (!user || !user.isActive) {
         throw new AppError('Invalid refresh token', 401);
@@ -105,21 +86,15 @@ export class AuthService {
   }
 
   async verifyEmail(userId) {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
+    const user = await User.findByIdAndUpdate(userId, { isEmailVerified: true }, { new: true });
     if (!user) {
       throw new AppError('User not found', 404);
     }
-
-    user.isEmailVerified = true;
-    await this.userRepository.save(user);
     return user;
   }
 
   async changePassword(userId, currentPassword, newPassword) {
-    const user = await this.userRepository.findOne({ 
-      where: { id: userId },
-      select: ['id', 'password']
-    });
+    const user = await User.findById(userId).select('+password');
 
     if (!user) {
       throw new AppError('User not found', 404);
@@ -131,12 +106,12 @@ export class AuthService {
     }
 
     user.password = newPassword;
-    await this.userRepository.save(user);
+    await user.save();
     return { message: 'Password changed successfully' };
   }
 
   async resetPassword(email) {
-    const user = await this.userRepository.findOne({ where: { email } });
+    const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
       throw new AppError('User not found', 404);
     }
@@ -157,14 +132,14 @@ export class AuthService {
   async confirmPasswordReset(token, newPassword) {
     try {
       const decoded = jwt.verify(token, configs.jwt.secret);
-      const user = await this.userRepository.findOne({ where: { id: decoded.userId } });
+      const user = await User.findById(decoded.userId);
 
       if (!user) {
         throw new AppError('Invalid reset token', 400);
       }
 
       user.password = newPassword;
-      await this.userRepository.save(user);
+      await user.save();
       return { message: 'Password reset successfully' };
     } catch (error) {
       throw new AppError('Invalid or expired reset token', 400);
@@ -172,10 +147,7 @@ export class AuthService {
   }
 
   async getProfile(userId) {
-    const user = await this.userRepository.findOne({ 
-      where: { id: userId },
-      select: ['id', 'email', 'firstName', 'lastName', 'role', 'phone', 'avatar', 'bio', 'address', 'city', 'state', 'zipCode', 'country', 'website', 'socialMedia', 'rating', 'totalReviews', 'isEmailVerified', 'createdAt']
-    });
+    const user = await User.findById(userId).select(PROFILE_FIELDS);
 
     if (!user) {
       throw new AppError('User not found', 404);
@@ -185,7 +157,7 @@ export class AuthService {
   }
 
   async updateProfile(userId, updateData) {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
+    const user = await User.findById(userId);
     if (!user) {
       throw new AppError('User not found', 404);
     }
@@ -198,18 +170,15 @@ export class AuthService {
       }
     });
 
-    const updatedUser = await this.userRepository.save(user);
+    await user.save();
     return this.getProfile(userId);
   }
 
   async deactivateAccount(userId) {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
+    const user = await User.findByIdAndUpdate(userId, { isActive: false });
     if (!user) {
       throw new AppError('User not found', 404);
     }
-
-    user.isActive = false;
-    await this.userRepository.save(user);
     return { message: 'Account deactivated successfully' };
   }
 }

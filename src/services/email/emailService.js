@@ -43,7 +43,6 @@ export class EmailService {
         <p>You can now:</p>
         <ul>
           <li>Browse and purchase handmade crafts</li>
-          <li>Enroll in training courses</li>
           <li>Connect with talented artisans</li>
           <li>Share your own creations (if you're an artisan)</li>
         </ul>
@@ -100,30 +99,6 @@ export class EmailService {
         </div>
 
         <p>You can track your package using the tracking number above.</p>
-        <p>Best regards,<br>The IremeCorner Team</p>
-      </div>
-    `;
-
-    return await this.sendEmail(userEmail, subject, html);
-  }
-
-  async sendCourseEnrollmentEmail(userEmail, userName, course) {
-    const subject = `Course Enrollment Confirmation - ${course.title}`;
-    const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #333;">Course Enrollment Confirmation</h2>
-        <p>Dear ${userName},</p>
-        <p>Congratulations! You've successfully enrolled in the course.</p>
-        
-        <div style="background-color: #f5f5f5; padding: 20px; margin: 20px 0;">
-          <h3>Course Details</h3>
-          <p><strong>Course Title:</strong> ${course.title}</p>
-          <p><strong>Instructor:</strong> ${course.instructor?.getFullName() || 'TBA'}</p>
-          <p><strong>Duration:</strong> ${course.getFormattedDuration()}</p>
-          <p><strong>Level:</strong> ${course.level}</p>
-        </div>
-
-        <p>You can now access your course materials and start learning!</p>
         <p>Best regards,<br>The IremeCorner Team</p>
       </div>
     `;

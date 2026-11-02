@@ -1,7 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
-import { User } from '../auth/User.js';
-import { Category } from './Category.js';
-import { OrderItem } from '../orders/OrderItem.js';
+import mongoose from 'mongoose';
+import { uuidId, baseSchemaOptions } from '../schemaOptions.js';
 
 export const ProductStatus = {
   DRAFT: 'draft',
@@ -10,119 +8,55 @@ export const ProductStatus = {
   OUT_OF_STOCK: 'out_of_stock',
 };
 
-@Entity('products')
-export class Product {
-  @PrimaryGeneratedColumn('uuid')
-  id;
+const productSchema = new mongoose.Schema({
+  _id: uuidId,
+  name: { type: String, required: true, maxlength: 200 },
+  description: { type: String, required: true },
+  price: { type: Number, required: true, min: 0 },
+  originalPrice: { type: Number, default: null },
+  stock: { type: Number, default: 0, min: 0 },
+  status: { type: String, enum: Object.values(ProductStatus), default: ProductStatus.DRAFT },
+  mainImage: { type: String, maxlength: 500, default: null },
+  images: { type: [String], default: undefined },
+  tags: { type: [String], default: undefined },
+  material: { type: String, maxlength: 100, default: null },
+  dimensions: { type: String, maxlength: 100, default: null },
+  weight: { type: String, maxlength: 50, default: null },
+  color: { type: String, maxlength: 100, default: null },
+  style: { type: String, maxlength: 100, default: null },
+  views: { type: Number, default: 0 },
+  sales: { type: Number, default: 0 },
+  rating: { type: Number, default: 0 },
+  reviewCount: { type: Number, default: 0 },
+  isActive: { type: Boolean, default: true },
+  slug: { type: String, maxlength: 200, default: null },
+  specifications: { type: mongoose.Schema.Types.Mixed, default: null },
+  careInstructions: { type: String, maxlength: 500, default: null },
+  shippingInfo: { type: String, maxlength: 500, default: null },
+  artisanId: { type: String, ref: 'User', required: true, index: true },
+  categoryId: { type: String, ref: 'Category', required: true, index: true },
+}, baseSchemaOptions);
 
-  @Column({ type: 'varchar', length: 200 })
-  name;
+productSchema.index({ isActive: 1, status: 1, createdAt: -1 });
 
-  @Column({ type: 'text' })
-  description;
+productSchema.virtual('artisan', { ref: 'User', localField: 'artisanId', foreignField: '_id', justOne: true });
+productSchema.virtual('category', { ref: 'Category', localField: 'categoryId', foreignField: '_id', justOne: true });
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
-  price;
-
-  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
-  originalPrice;
-
-  @Column({ type: 'int', default: 0 })
-  stock;
-
-  @Column({ type: 'varchar', length: 50, default: ProductStatus.DRAFT })
-  status;
-
-  @Column({ type: 'varchar', length: 500, nullable: true })
-  mainImage;
-
-  @Column({ type: 'json', nullable: true })
-  images;
-
-  @Column({ type: 'json', nullable: true })
-  tags;
-
-  @Column({ type: 'varchar', length: 100, nullable: true })
-  material;
-
-  @Column({ type: 'varchar', length: 100, nullable: true })
-  dimensions;
-
-  @Column({ type: 'varchar', length: 50, nullable: true })
-  weight;
-
-  @Column({ type: 'varchar', length: 100, nullable: true })
-  color;
-
-  @Column({ type: 'varchar', length: 100, nullable: true })
-  style;
-
-  @Column({ type: 'int', default: 0 })
-  views;
-
-  @Column({ type: 'int', default: 0 })
-  sales;
-
-  @Column({ type: 'decimal', precision: 3, scale: 2, default: 0 })
-  rating;
-
-  @Column({ type: 'int', default: 0 })
-  reviewCount;
-
-  @Column({ type: 'boolean', default: true })
-  isActive;
-
-  @Column({ type: 'varchar', length: 200, nullable: true })
-  slug;
-
-  @Column({ type: 'json', nullable: true })
-  specifications;
-
-  @Column({ type: 'varchar', length: 500, nullable: true })
-  careInstructions;
-
-  @Column({ type: 'varchar', length: 500, nullable: true })
-  shippingInfo;
-
-  @CreateDateColumn()
-  createdAt;
-
-  @UpdateDateColumn()
-  updatedAt;
-
-  // Relations
-  @ManyToOne(() => User, user => user.products)
-  @JoinColumn({ name: 'artisanId' })
-  artisan;
-
-  @Column({ type: 'uuid' })
-  artisanId;
-
-  @ManyToOne(() => Category, category => category.products)
-  @JoinColumn({ name: 'categoryId' })
-  category;
-
-  @Column({ type: 'uuid' })
-  categoryId;
-
-  @OneToMany(() => OrderItem, orderItem => orderItem.product)
-  orderItems;
-
-  // Methods
-  getDiscountPercentage() {
-    if (this.originalPrice && this.originalPrice > this.price) {
-      return Math.round(((this.originalPrice - this.price) / this.originalPrice) * 100);
-    }
-    return 0;
+productSchema.methods.getDiscountPercentage = function getDiscountPercentage() {
+  if (this.originalPrice && this.originalPrice > this.price) {
+    return Math.round(((this.originalPrice - this.price) / this.originalPrice) * 100);
   }
+  return 0;
+};
 
-  isInStock() {
-    return this.stock > 0 && this.status === ProductStatus.ACTIVE;
-  }
+productSchema.methods.isInStock = function isInStock() {
+  return this.stock > 0 && this.status === ProductStatus.ACTIVE;
+};
 
-  updateRating(newRating) {
-    const totalRating = (this.rating * this.reviewCount) + newRating;
-    this.reviewCount += 1;
-    this.rating = totalRating / this.reviewCount;
-  }
-}
+productSchema.methods.updateRating = function updateRating(newRating) {
+  const totalRating = (this.rating * this.reviewCount) + newRating;
+  this.reviewCount += 1;
+  this.rating = totalRating / this.reviewCount;
+};
+
+export const Product = mongoose.model('Product', productSchema);

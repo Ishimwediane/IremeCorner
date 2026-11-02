@@ -1,6 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
-import { User } from '../auth/User.js';
-import { OrderItem } from './OrderItem.js';
+import mongoose from 'mongoose';
+import { uuidId, baseSchemaOptions, subSchemaOptions } from '../schemaOptions.js';
 
 export const OrderStatus = {
   PENDING: 'pending',
@@ -19,104 +18,68 @@ export const PaymentStatus = {
   REFUNDED: 'refunded',
 };
 
-@Entity('orders')
-export class Order {
-  @PrimaryGeneratedColumn('uuid')
-  id;
+// Order items are stored inside their order, with a snapshot of the product at purchase time.
+const orderItemSchema = new mongoose.Schema({
+  _id: uuidId,
+  productId: { type: String, ref: 'Product', required: true },
+  quantity: { type: Number, required: true, min: 1 },
+  price: { type: Number, required: true },
+  originalPrice: { type: Number, default: null },
+  total: { type: Number, required: true },
+  productName: { type: String, required: true, maxlength: 200 },
+  productImage: { type: String, maxlength: 500, default: null },
+  productSpecifications: { type: mongoose.Schema.Types.Mixed, default: null },
+}, subSchemaOptions);
 
-  @Column({ type: 'varchar', length: 50, unique: true })
-  orderNumber;
+orderItemSchema.virtual('product', { ref: 'Product', localField: 'productId', foreignField: '_id', justOne: true });
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
-  subtotal;
+const orderSchema = new mongoose.Schema({
+  _id: uuidId,
+  orderNumber: { type: String, required: true, unique: true, maxlength: 50 },
+  subtotal: { type: Number, required: true },
+  tax: { type: Number, default: 0 },
+  shipping: { type: Number, default: 0 },
+  discount: { type: Number, default: 0 },
+  totalAmount: { type: Number, required: true },
+  status: { type: String, enum: Object.values(OrderStatus), default: OrderStatus.PENDING },
+  paymentStatus: { type: String, enum: Object.values(PaymentStatus), default: PaymentStatus.PENDING },
+  paymentMethod: { type: String, maxlength: 100, default: null },
+  paymentReference: { type: String, maxlength: 255, default: null },
+  shippingAddress: { type: String, required: true, maxlength: 500 },
+  billingAddress: { type: String, required: true, maxlength: 500 },
+  trackingNumber: { type: String, maxlength: 100, default: null },
+  notes: { type: String, default: null },
+  shippedAt: { type: Date, default: null },
+  deliveredAt: { type: Date, default: null },
+  cancelledAt: { type: Date, default: null },
+  buyerId: { type: String, ref: 'User', default: null, index: true },
+  guestName: { type: String, maxlength: 100, default: null },
+  guestPhone: { type: String, maxlength: 20, default: null },
+  guestEmail: { type: String, maxlength: 100, default: null },
+  orderItems: { type: [orderItemSchema], default: [] },
+}, baseSchemaOptions);
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
-  tax;
+orderSchema.index({ 'orderItems.productId': 1 });
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
-  shipping;
+orderSchema.virtual('buyer', { ref: 'User', localField: 'buyerId', foreignField: '_id', justOne: true });
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
-  discount;
+orderSchema.methods.generateOrderNumber = function generateOrderNumber() {
+  const timestamp = Date.now().toString(36);
+  const random = Math.random().toString(36).substring(2, 7);
+  this.orderNumber = `ORD-${timestamp}-${random}`.toUpperCase();
+};
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
-  totalAmount;
+orderSchema.methods.calculateTotal = function calculateTotal() {
+  this.totalAmount = this.subtotal + this.tax + this.shipping - this.discount;
+};
 
-  @Column({ type: 'varchar', length: 50, default: OrderStatus.PENDING })
-  status;
+orderSchema.methods.canBeCancelled = function canBeCancelled() {
+  return [OrderStatus.PENDING, OrderStatus.CONFIRMED].includes(this.status);
+};
 
-  @Column({ type: 'varchar', length: 50, default: PaymentStatus.PENDING })
-  paymentStatus;
+orderSchema.methods.canBeRefunded = function canBeRefunded() {
+  return [OrderStatus.DELIVERED, OrderStatus.SHIPPED].includes(this.status) &&
+         this.paymentStatus === PaymentStatus.PAID;
+};
 
-  @Column({ type: 'varchar', length: 100, nullable: true })
-  paymentMethod;
-
-  @Column({ type: 'varchar', length: 255, nullable: true })
-  paymentReference;
-
-  @Column({ type: 'varchar', length: 100 })
-  shippingAddress;
-
-  @Column({ type: 'varchar', length: 100 })
-  billingAddress;
-
-  @Column({ type: 'varchar', length: 100, nullable: true })
-  trackingNumber;
-
-  @Column({ type: 'text', nullable: true })
-  notes;
-
-  @Column({ type: 'timestamp', nullable: true })
-  shippedAt;
-
-  @Column({ type: 'timestamp', nullable: true })
-  deliveredAt;
-
-  @Column({ type: 'timestamp', nullable: true })
-  cancelledAt;
-
-  @CreateDateColumn()
-  createdAt;
-
-  @UpdateDateColumn()
-  updatedAt;
-
-  // Relations
-  @ManyToOne(() => User, user => user.orders)
-  @JoinColumn({ name: 'buyerId' })
-  buyer;
-
-  @Column({ type: 'uuid', nullable: true  })
-  buyerId;
-
-  @OneToMany(() => OrderItem, orderItem => orderItem.order, { cascade: true })
-  orderItems;
-  @Column({ type: 'varchar', length: 100, nullable: true })
-guestName;
-
-@Column({ type: 'varchar', length: 20, nullable: true })
-guestPhone;
-
-@Column({ type: 'varchar', length: 100, nullable: true })
-guestEmail;
-
-  // Methods
-  generateOrderNumber() {
-    const timestamp = Date.now().toString(36);
-    const random = Math.random().toString(36).substr(2, 5);
-    this.orderNumber = `ORD-${timestamp}-${random}`.toUpperCase();
-  }
-
-  calculateTotal() {
-    this.totalAmount = this.subtotal + this.tax + this.shipping - this.discount;
-  }
-
-  canBeCancelled() {
-    return [OrderStatus.PENDING, OrderStatus.CONFIRMED].includes(this.status);
-  }
-
-  canBeRefunded() {
-    return [OrderStatus.DELIVERED, OrderStatus.SHIPPED].includes(this.status) && 
-           this.paymentStatus === PaymentStatus.PAID;
-  }
-}
+export const Order = mongoose.model('Order', orderSchema);
