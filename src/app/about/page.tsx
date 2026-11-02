@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import { Palette, Handshake, Lightbulb } from 'lucide-react';
 
 const AboutPage = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -185,7 +186,9 @@ const AboutPage = () => {
             
             <div className="grid md:grid-cols-3 gap-6">
               <div className="bg-[#202f32] rounded-lg shadow-xl p-6 transform hover:scale-105 hover:-translate-y-2 transition-all duration-300">
-                <div className="text-orange-400 text-4xl mb-4 text-center">🎨</div>
+                <div className="flex justify-center mb-4">
+                  <Palette className="w-10 h-10 text-orange-400" />
+                </div>
                 <h3 className="text-xl font-bold text-orange-300 mb-3 text-center">Authenticity</h3>
                 <p className="text-white text-center">
                   Every product tells a story of genuine Rwandan craftsmanship and cultural heritage.
@@ -193,7 +196,9 @@ const AboutPage = () => {
               </div>
 
               <div className="bg-[#202f32] rounded-lg shadow-xl p-6 transform hover:scale-105 hover:-translate-y-2 transition-all duration-300 delay-100">
-                <div className="text-orange-400 text-4xl mb-4 text-center">🤝</div>
+                <div className="flex justify-center mb-4">
+                  <Handshake className="w-10 h-10 text-orange-400" />
+                </div>
                 <h3 className="text-xl font-bold text-orange-300 mb-3 text-center">Community</h3>
                 <p className="text-white text-center">
                   Building bridges between artisans, customers, and the next generation of creators.
@@ -201,44 +206,13 @@ const AboutPage = () => {
               </div>
 
               <div className="bg-[#202f32] rounded-lg shadow-xl p-6 transform hover:scale-105 hover:-translate-y-2 transition-all duration-300 delay-200">
-                <div className="text-orange-400 text-4xl mb-4 text-center">💡</div>
+                <div className="flex justify-center mb-4">
+                  <Lightbulb className="w-10 h-10 text-orange-400" />
+                </div>
                 <h3 className="text-xl font-bold text-orange-300 mb-3 text-center">Innovation</h3>
                 <p className="text-white text-center">
                   Merging traditional techniques with modern technology to reach global markets.
                 </p>
-              </div>
-            </div>
-          </section>
-
-          {/* Meet the Team Section */}
-          <section className={`mb-16 transition-all duration-1000 transform delay-[600ms] ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-            <h2 className="text-3xl md:text-4xl font-bold text-center text-orange-300 mb-12">Meet the Team</h2>
-            
-            <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-8 max-w-2xl mx-auto">
-              {/* Team Member 1 */}
-              <div className="text-center group">
-                <div className="w-40 h-40 mx-auto mb-4 rounded-lg overflow-hidden shadow-xl transform group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
-                  <img 
-                    src="/images/dia.png"
-                    alt="Diane CEO" 
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-800 group-hover:text-orange-400 transition-colors">Diane Ishimwe</h3>
-                <p className="text-gray-600 mt-1">Co-Founder & CEO</p>
-              </div>
-
-              {/* Team Member 2 */}
-              <div className="text-center group">
-                <div className="w-40 h-40 mx-auto mb-4 rounded-lg overflow-hidden shadow-xl transform group-hover:scale-110 group-hover:-rotate-3 transition-all duration-500">
-                  <img 
-                    src="/images/yv.jpg"
-                    alt="Yvette" 
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-800 group-hover:text-orange-400 transition-colors">Yvette Kazeneza</h3>
-                <p className="text-gray-600 mt-1">Co-Founder & Operations</p>
               </div>
             </div>
           </section>

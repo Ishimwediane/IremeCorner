@@ -185,33 +185,6 @@ const ContactPage = () => {
                 </button>
               </form>
             </div>
-
-            {/* Quick Links */}
-            <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-              <a 
-                href="/shop" 
-                className="bg-white p-6 rounded-xl shadow-md text-center hover:shadow-lg transition-shadow border border-gray-100"
-              >
-                <h3 className="font-semibold text-gray-900 mb-2">Shop Products</h3>
-                <p className="text-gray-600 text-sm">Browse our handmade collection</p>
-              </a>
-              
-              <a 
-                href="/login" 
-                className="bg-white p-6 rounded-xl shadow-md text-center hover:shadow-lg transition-shadow border border-gray-100"
-              >
-                <h3 className="font-semibold text-gray-900 mb-2">Become a Seller</h3>
-                <p className="text-gray-600 text-sm">Join our artisan community</p>
-              </a>
-              
-              <a 
-                href="/trainings" 
-                className="bg-white p-6 rounded-xl shadow-md text-center hover:shadow-lg transition-shadow border border-gray-100"
-              >
-                <h3 className="font-semibold text-gray-900 mb-2">View Trainings</h3>
-                <p className="text-gray-600 text-sm">Learn traditional crafts</p>
-              </a>
-            </div>
           </div>
         </div>
       </div>

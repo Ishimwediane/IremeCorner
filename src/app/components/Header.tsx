@@ -73,7 +73,6 @@ const Header = () => {
             <a href="/" className="text-white hover:text-orange-200 font-medium transition-colors">Home</a>
             <a href="/about" className="text-white hover:text-orange-200 font-medium transition-colors">About us</a>
             <a href="/shop" className="text-white hover:text-orange-200 font-medium transition-colors">Shop Now</a>
-            <a href="/community" className="text-white hover:text-orange-200 font-medium transition-colors">Community</a>
             <a href="/donate" className="text-white hover:text-orange-200 font-medium transition-colors">Donate</a>
             <a href="/contact" className="text-white hover:text-orange-200 font-medium transition-colors">Contact Us</a>
           </div>
@@ -87,7 +86,6 @@ const Header = () => {
             <a href="/" onClick={() => setMobileMenuOpen(false)} className="text-white hover:text-orange-300 hover:bg-white hover:bg-opacity-10 font-medium transition-colors py-3 px-3 rounded-lg">Home</a>
             <a href="/about" onClick={() => setMobileMenuOpen(false)} className="text-white hover:text-orange-300 hover:bg-white hover:bg-opacity-10 font-medium transition-colors py-3 px-3 rounded-lg">About us</a>
             <a href="/shop" onClick={() => setMobileMenuOpen(false)} className="text-white hover:text-orange-300 hover:bg-white hover:bg-opacity-10 font-medium transition-colors py-3 px-3 rounded-lg">Shop Now</a>
-            <a href="/community" onClick={() => setMobileMenuOpen(false)} className="text-white hover:text-orange-300 hover:bg-white hover:bg-opacity-10 font-medium transition-colors py-3 px-3 rounded-lg">Community</a>
             <a href="/donate" onClick={() => setMobileMenuOpen(false)} className="text-white hover:text-orange-300 hover:bg-white hover:bg-opacity-10 font-medium transition-colors py-3 px-3 rounded-lg">Donate</a>
             <a href="/contact" onClick={() => setMobileMenuOpen(false)} className="text-white hover:text-orange-300 hover:bg-white hover:bg-opacity-10 font-medium transition-colors py-3 px-3 rounded-lg">Contact Us</a>
           </nav>

@@ -1,225 +1,333 @@
 "use client";
 
 import React, { useState } from 'react';
+import {
+  Smartphone,
+  CreditCard,
+  Landmark,
+  Copy,
+  Check,
+  Phone,
+  MessageCircle,
+  Mail,
+  ShieldCheck,
+  Palette,
+  GraduationCap,
+  Users,
+  ShoppingBag,
+  Share2,
+  Handshake,
+  ArrowLeft,
+  HeartHandshake,
+} from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
+// Payment details shown to donors. Update these before going live.
+const DONATION_CONFIG = {
+  whatsappNumber: '250785933044',
+  email: 'iremecorner@gmail.com',
+  mobileMoney: [
+    {
+      id: 'mtn',
+      label: 'MTN MoMo',
+      number: '0785933044',
+      // Name registered on the MoMo account; donors see it before confirming.
+      registeredName: '',
+      // MTN Rwanda "send money" USSD: *182*1*1*<number>*<amount>#
+      ussd: (amount: number) => `*182*1*1*0785933044*${amount}#`,
+    },
+    {
+      id: 'airtel',
+      label: 'Airtel Money',
+      number: '0790755673',
+      registeredName: '',
+      ussd: null,
+    },
+  ],
+  // Hosted card checkout link (e.g. Flutterwave or Paystack payment link). Leave empty to hide card payments.
+  cardPaymentLink: '',
+  // Real bank details only. Leave as null to hide bank transfer.
+  bank: null as null | {
+    bankName: string;
+    accountName: string;
+    accountNumber: string;
+    swift: string;
+  },
+};
+
+type Method = 'momo' | 'card' | 'bank';
+type Currency = 'RWF' | 'USD';
+
+const PRESETS: Record<Currency, number[]> = {
+  RWF: [5000, 10000, 25000, 50000, 100000],
+  USD: [10, 25, 50, 100, 250],
+};
+
+const IMPACT = [
+  { icon: Palette, text: 'Buys raw materials for an artisan' },
+  { icon: GraduationCap, text: 'Funds a youth craft training session' },
+  { icon: Users, text: 'Helps an artisan family earn a fair income' },
+];
+
+const formatAmount = (amount: number, currency: Currency) =>
+  currency === 'RWF'
+    ? `${amount.toLocaleString('en-US')} RWF`
+    : `$${amount.toLocaleString('en-US')}`;
+
+const formatPhone = (number: string) =>
+  number.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3');
+
+const generateReference = () =>
+  `DON-${Date.now().toString(36).slice(-6).toUpperCase()}`;
+
+const CopyButton = ({ value }: { value: string }) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard not available; the value is still visible to copy by hand.
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      className="inline-flex items-center gap-1 text-sm font-medium text-orange-600 hover:text-orange-700 transition-colors"
+      aria-label={`Copy ${value}`}
+    >
+      {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+      {copied ? 'Copied' : 'Copy'}
+    </button>
+  );
+};
+
 const DonatePage = () => {
-  const [donationAmount, setDonationAmount] = useState('');
-  const [selectedAmount, setSelectedAmount] = useState('');
-  const [donationType, setDonationType] = useState('one-time');
-  const [showPaymentInfo, setShowPaymentInfo] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    message: ''
-  });
+  const availableMethods: { id: Method; label: string; hint: string; icon: typeof Smartphone }[] = [
+    { id: 'momo', label: 'Mobile Money', hint: 'MTN MoMo or Airtel Money', icon: Smartphone },
+    ...(DONATION_CONFIG.cardPaymentLink
+      ? [{ id: 'card' as Method, label: 'Card', hint: 'Visa, Mastercard, international', icon: CreditCard }]
+      : []),
+    ...(DONATION_CONFIG.bank
+      ? [{ id: 'bank' as Method, label: 'Bank transfer', hint: 'Local or international', icon: Landmark }]
+      : []),
+  ];
 
-  const handleAmountSelect = (amount) => {
-    setSelectedAmount(amount);
-    setDonationAmount(amount);
+  const [method, setMethod] = useState<Method>('momo');
+  const [currency, setCurrency] = useState<Currency>('RWF');
+  const [amount, setAmount] = useState<number | null>(PRESETS.RWF[1]);
+  const [customAmount, setCustomAmount] = useState('');
+  const [donor, setDonor] = useState({ name: '', contact: '', message: '' });
+  const [anonymous, setAnonymous] = useState(false);
+  const [reference, setReference] = useState<string | null>(null);
+  const [transactionId, setTransactionId] = useState('');
+
+  const finalAmount = customAmount ? Number(customAmount) : amount;
+  const isValidAmount = !!finalAmount && finalAmount > 0;
+  const donorName = anonymous || !donor.name.trim() ? 'Anonymous' : donor.name.trim();
+
+  const handleMethodChange = (next: Method) => {
+    setMethod(next);
+    // Mobile Money in Rwanda is RWF only.
+    if (next === 'momo' && currency !== 'RWF') {
+      setCurrency('RWF');
+      setAmount(PRESETS.RWF[1]);
+      setCustomAmount('');
+    }
   };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+  const handleCurrencyChange = (next: Currency) => {
+    setCurrency(next);
+    setAmount(PRESETS[next][1]);
+    setCustomAmount('');
   };
 
-  const handleSubmit = (e) => {
+  const handleContinue = (e: React.FormEvent) => {
     e.preventDefault();
-    setShowPaymentInfo(true);
+    if (!isValidAmount) return;
+    setReference(generateReference());
+    if (method === 'card' && DONATION_CONFIG.cardPaymentLink) {
+      window.open(DONATION_CONFIG.cardPaymentLink, '_blank', 'noopener,noreferrer');
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleBackToForm = () => {
-    setShowPaymentInfo(false);
-  };
+  const confirmationMessage = [
+    'Hello IremeCorner, I have just sent a donation.',
+    `Reference: ${reference}`,
+    `Amount: ${finalAmount ? formatAmount(finalAmount, currency) : ''}`,
+    `Method: ${availableMethods.find((m) => m.id === method)?.label}`,
+    transactionId ? `Transaction ID: ${transactionId}` : '',
+    `Name: ${donorName}`,
+    donor.message ? `Message: ${donor.message}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
 
-  const quickAmounts = [10, 25, 50, 100, 250];
+  const whatsappLink = `https://wa.me/${DONATION_CONFIG.whatsappNumber}?text=${encodeURIComponent(confirmationMessage)}`;
+  const emailLink = `mailto:${DONATION_CONFIG.email}?subject=${encodeURIComponent(`Donation ${reference}`)}&body=${encodeURIComponent(confirmationMessage)}`;
 
-  // Payment Information Component
-  if (showPaymentInfo) {
+  const background = (
+    <>
+      <div
+        className="fixed inset-0 bg-cover bg-center bg-fixed -z-10"
+        style={{ backgroundImage: "url('images/wall.jpeg')", opacity: 0.5 }}
+      />
+      <div className="fixed inset-0 bg-white -z-10" style={{ opacity: 0.7 }} />
+    </>
+  );
+
+  // Step 2: payment instructions
+  if (reference && finalAmount) {
     return (
       <div className="min-h-screen relative">
-        <div 
-          className="fixed inset-0 bg-cover bg-center bg-fixed -z-10"
-          style={{ 
-            backgroundImage: "url('images/wall.jpeg')",
-            opacity: 0.5,
-          }}
-        />
-        <div className="fixed inset-0 bg-white -z-10" style={{ opacity: 0.7 }} />
-
+        {background}
         <Header />
 
-        <main className="py-16">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            
-            {/* Success Header */}
-            <div className="text-center mb-8">
-              <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
-                <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <h1 className="text-4xl font-bold text-[#202f32] mb-2">Thank You, {formData.name}!</h1>
-              <p className="text-xl text-gray-600">Complete your ${donationAmount} {donationType} donation</p>
-            </div>
+        <main className="py-12 md:py-16">
+          <div className="max-w-2xl mx-auto px-4 sm:px-6">
+            <button
+              onClick={() => setReference(null)}
+              className="inline-flex items-center gap-2 text-gray-600 hover:text-[#202f32] mb-6 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Change amount or method
+            </button>
 
-            {/* Donation Summary */}
-            <div className="bg-orange-50 border-l-4 border-orange-400 rounded-lg p-6 mb-8">
-              <h2 className="text-xl font-bold text-orange-800 mb-4">Donation Summary</h2>
-              <div className="grid md:grid-cols-2 gap-4 text-gray-700">
-                <div>
-                  <p className="font-semibold">Donor Name:</p>
-                  <p>{formData.name}</p>
-                </div>
-                <div>
-                  <p className="font-semibold">Email:</p>
-                  <p>{formData.email}</p>
-                </div>
-                <div>
-                  <p className="font-semibold">Amount:</p>
-                  <p className="text-2xl font-bold text-">${donationAmount} USD</p>
-                </div>
-                <div>
-                  <p className="font-semibold">Type:</p>
-                  <p className="capitalize">{donationType}</p>
-                </div>
-                {formData.message && (
-                  <div className="md:col-span-2">
-                    <p className="font-semibold mb-2">Your Message:</p>
-                    <p className="italic bg-white p-3 rounded border border-orange-200">"{formData.message}"</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Payment Instructions */}
-            <div className="grid md:grid-cols-2 gap-8 mb-8">
-              
-              {/* Mobile Money */}
-              <div className="bg-white rounded-lg shadow-xl p-6">
-                <div className="flex items-center mb-4">
-                  <div className="w-12 h-12 bg-orange-400 rounded-full flex items-center justify-center mr-3">
-                    <span className="text-white text-2xl">📱</span>
-                  </div>
-                  <h2 className="text-2xl font-bold text-[#202f32]">Mobile Money</h2>
-                </div>
-                
-                <div className="space-y-4">
-                  <div className="bg-gray-50 p-4 rounded-lg border-2 border-gray-200">
-                    <p className="text-sm text-gray-600 mb-1">MTN Mobile Money</p>
-                    <p className="text-2xl font-bold text-gray-800">*182*8*1*250785933044#</p>
-                    <p className="text-sm text-gray-500 mt-2">Or send to: <strong>0785933044</strong></p>
-                  </div>
-
-                  <div className="bg-gray-50 p-4 rounded-lg border-2 border-gray-200">
-                    <p className="text-sm text-gray-600 mb-1">Airtel Money</p>
-                    <p className="text-2xl font-bold text-gray-800">*500*1*250790755673#</p>
-                    <p className="text-sm text-gray-500 mt-2">Or send to: <strong>0790755673</strong></p>
-                  </div>
-                </div>
-
-                <div className="mt-6 bg-orange-50 p-4 rounded-lg">
-                  <p className="text-sm font-semibold text-orange-800 mb-2">Instructions:</p>
-                  <ol className="text-sm text-gray-700 space-y-1 list-decimal list-inside">
-                    <li>Dial the code above or send to the number</li>
-                    <li>Enter amount: <strong>${donationAmount}</strong></li>
-                    <li>Enter your PIN to confirm</li>
-                    <li>You'll receive a confirmation SMS</li>
-                  </ol>
+            <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+              {/* Summary */}
+              <div className="bg-[#202f32] text-white p-6 md:p-8 text-center">
+                <p className="text-orange-300 font-medium mb-1">You are donating</p>
+                <p className="text-4xl md:text-5xl font-bold mb-3">{formatAmount(finalAmount, currency)}</p>
+                <div className="inline-flex items-center gap-2 bg-white/10 rounded-full px-4 py-1.5 text-sm">
+                  <span className="text-gray-300">Reference</span>
+                  <span className="font-mono font-semibold tracking-wide">{reference}</span>
                 </div>
               </div>
 
-              {/* Bank Transfer */}
-              <div className="bg-white rounded-lg shadow-xl p-6">
-                <div className="flex items-center mb-4">
-                  <div className="w-12 h-12 bg-orange-400 rounded-full flex items-center justify-center mr-3">
-                    <span className="text-white text-2xl">🏦</span>
-                  </div>
-                  <h2 className="text-2xl font-bold text-[#202f32]">Bank Transfer</h2>
-                </div>
+              <div className="p-6 md:p-8 space-y-8">
+                {/* Step 1: Send */}
+                <section>
+                  <h2 className="flex items-center gap-3 text-lg font-bold text-[#202f32] mb-4">
+                    <span className="w-7 h-7 rounded-full bg-orange-400 text-white text-sm flex items-center justify-center">1</span>
+                    Send your donation
+                  </h2>
 
-                <div className="space-y-3">
-                  <div className="bg-gray-50 p-3 rounded">
-                    <p className="text-sm text-gray-600">Bank Name</p>
-                    <p className="font-bold text-gray-800">Bank of Kigali</p>
-                  </div>
+                  {method === 'momo' && (
+                    <div className="space-y-3">
+                      {DONATION_CONFIG.mobileMoney.map((account) => (
+                        <div key={account.id} className="border-2 border-gray-100 rounded-xl p-4">
+                          <div className="flex items-center justify-between mb-1">
+                            <p className="text-sm font-semibold text-gray-500">{account.label}</p>
+                            <CopyButton value={account.number} />
+                          </div>
+                          <p className="text-2xl font-bold text-gray-900 tracking-wide">{formatPhone(account.number)}</p>
+                          {account.registeredName && (
+                            <p className="text-sm text-gray-500 mt-1">Registered name: <strong>{account.registeredName}</strong></p>
+                          )}
+                          {account.ussd && (
+                            <a
+                              href={`tel:${encodeURIComponent(account.ussd(finalAmount))}`}
+                              className="mt-3 inline-flex items-center gap-2 bg-[#ffcb05] hover:brightness-95 text-gray-900 font-semibold px-4 py-2 rounded-lg transition-all md:hidden"
+                            >
+                              <Phone className="w-4 h-4" />
+                              Dial to send {formatAmount(finalAmount, currency)}
+                            </a>
+                          )}
+                        </div>
+                      ))}
+                      <ol className="text-sm text-gray-600 space-y-1 list-decimal list-inside bg-orange-50 rounded-xl p-4">
+                        <li>Send <strong>{formatAmount(finalAmount, currency)}</strong> to one of the numbers above</li>
+                        <li>Check the name shown before entering your PIN</li>
+                        <li>Keep the transaction ID from your confirmation SMS</li>
+                      </ol>
+                    </div>
+                  )}
 
-                  <div className="bg-gray-50 p-3 rounded">
-                    <p className="text-sm text-gray-600">Account Name</p>
-                    <p className="font-bold text-gray-800">IremeCorner Ltd</p>
-                  </div>
+                  {method === 'card' && (
+                    <div className="border-2 border-gray-100 rounded-xl p-4 text-gray-600">
+                      <p className="mb-3">
+                        Our secure checkout opened in a new tab. Enter <strong>{formatAmount(finalAmount, currency)}</strong> and
+                        add <strong>{reference}</strong> as the note or reference.
+                      </p>
+                      <a
+                        href={DONATION_CONFIG.cardPaymentLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold px-4 py-2 rounded-lg transition-colors"
+                      >
+                        <CreditCard className="w-4 h-4" />
+                        Open checkout again
+                      </a>
+                    </div>
+                  )}
 
-                  <div className="bg-gray-50 p-3 rounded">
-                    <p className="text-sm text-gray-600">Account Number</p>
-                    <p className="font-bold text-2xl text-gray-800">00012345678901</p>
-                  </div>
+                  {method === 'bank' && DONATION_CONFIG.bank && (
+                    <div className="border-2 border-gray-100 rounded-xl divide-y divide-gray-100">
+                      {[
+                        ['Bank', DONATION_CONFIG.bank.bankName],
+                        ['Account name', DONATION_CONFIG.bank.accountName],
+                        ['Account number', DONATION_CONFIG.bank.accountNumber],
+                        ['SWIFT', DONATION_CONFIG.bank.swift],
+                        ['Reference', reference],
+                      ].map(([label, value]) => (
+                        <div key={label} className="flex items-center justify-between p-4">
+                          <div>
+                            <p className="text-sm text-gray-500">{label}</p>
+                            <p className="font-semibold text-gray-900">{value}</p>
+                          </div>
+                          <CopyButton value={value} />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
 
-                  <div className="bg-gray-50 p-3 rounded">
-                    <p className="text-sm text-gray-600">SWIFT Code</p>
-                    <p className="font-bold text-gray-800">BKIGRWRW</p>
+                {/* Step 2: Confirm */}
+                <section>
+                  <h2 className="flex items-center gap-3 text-lg font-bold text-[#202f32] mb-4">
+                    <span className="w-7 h-7 rounded-full bg-orange-400 text-white text-sm flex items-center justify-center">2</span>
+                    Let us know so we can thank you
+                  </h2>
+                  {method !== 'card' && (
+                    <input
+                      type="text"
+                      value={transactionId}
+                      onChange={(e) => setTransactionId(e.target.value)}
+                      placeholder="Transaction ID from your SMS (optional)"
+                      className="w-full px-4 py-3 mb-3 border-2 border-gray-200 rounded-lg text-gray-800 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none transition-all"
+                    />
+                  )}
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <a
+                      href={whatsappLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-lg transition-colors"
+                    >
+                      <MessageCircle className="w-5 h-5" />
+                      Confirm on WhatsApp
+                    </a>
+                    <a
+                      href={emailLink}
+                      className="flex items-center justify-center gap-2 border-2 border-[#202f32] text-[#202f32] hover:bg-[#202f32] hover:text-white font-semibold py-3 rounded-lg transition-colors"
+                    >
+                      <Mail className="w-5 h-5" />
+                      Confirm by email
+                    </a>
                   </div>
+                </section>
 
-                  <div className="bg-gray-50 p-3 rounded">
-                    <p className="text-sm text-gray-600">Reference</p>
-                    <p className="font-bold text-gray-800">DONATION-{formData.name.replace(/\s+/g, '').toUpperCase()}</p>
-                  </div>
-                </div>
-
-                <div className="mt-6 bg-orange-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-700">
-                    <strong>Important:</strong> Please use the reference number above so we can track your donation.
-                  </p>
-                </div>
+                <p className="flex items-start gap-2 text-sm text-gray-500">
+                  <ShieldCheck className="w-5 h-5 text-green-600 shrink-0" />
+                  IremeCorner will never ask for your PIN. Only send to the numbers shown on this page.
+                </p>
               </div>
-            </div>
-
-            {/* Contact Support */}
-            <div className="bg-gradient-to-br from-[#202f32] to-gray-800 rounded-lg shadow-xl p-6 text-white text-center">
-              <h3 className="text-2xl font-bold mb-4">Need Help?</h3>
-              <p className="mb-6">Our team is here to assist you with your donation</p>
-              
-              <div className="grid md:grid-cols-2 gap-4">
-                <a 
-                  href="https://wa.me/250785933044?text=Hello,%20I%20need%20help%20with%20my%20donation"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-green-500 hover:bg-green-600 text-white px-6 py-4 rounded-lg font-semibold flex items-center justify-center space-x-2 transition-all transform hover:scale-105"
-                >
-                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
-                  </svg>
-                  <span>WhatsApp: +250 785 933 044</span>
-                </a>
-
-                <a 
-                  href="mailto:iremecorner@gmail.com?subject=Donation%20Inquiry"
-                  className="bg-orange-400 hover:bg-orange-500 text-white px-6 py-4 rounded-lg font-semibold flex items-center justify-center space-x-2 transition-all transform hover:scale-105"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                  <span>Email: iremecorner@gmail.com</span>
-                </a>
-              </div>
-
-              <p className="mt-6 text-sm opacity-90">
-                📞 Phone: +250 785 933 044 / +250 790 755 673
-              </p>
-            </div>
-
-            {/* Back Button */}
-            <div className="text-center mt-8">
-              <button
-                onClick={handleBackToForm}
-                className="text-orange-500 hover:text-orange-600 font-semibold underline"
-              >
-                ← Back to Donation Form
-              </button>
             </div>
           </div>
         </main>
@@ -229,268 +337,222 @@ const DonatePage = () => {
     );
   }
 
-  // Main Donation Form
+  // Step 1: choose method and amount
   return (
     <div className="min-h-screen relative">
-      <div 
-        className="fixed inset-0 bg-cover bg-center bg-fixed -z-10"
-        style={{ 
-          backgroundImage: "url('images/wall.jpeg')",
-          opacity: 0.5,
-        }}
-      />
-      <div className="fixed inset-0 bg-white -z-10" style={{ opacity: 0.7 }} />
-
+      {background}
       <Header />
 
-      <main className="py-16">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          
-          <section className="text-center mb-12">
-            <h1 className="text-4xl md:text-5xl font-bold text-[#202f32] mb-4">
-              Support Our Artisans
-            </h1>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Your donation helps preserve Rwandan cultural heritage and empowers local artisans with sustainable livelihoods.
+      <main className="py-12 md:py-16">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <section className="text-center mb-10">
+            <h1 className="text-4xl md:text-5xl font-bold text-[#202f32] mb-4">Support Our Artisans</h1>
+            <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
+              Your gift helps preserve Rwandan craft heritage and gives artisans a sustainable livelihood.
             </p>
           </section>
 
-          <div className="grid md:grid-cols-2 gap-8">
-            
-            {/* Donation Form */}
-            <div className="bg-white rounded-lg shadow-xl p-6 md:p-8 hover:shadow-2xl transition-all duration-300">
-              <h2 className="text-2xl font-bold text-[#202f32] mb-6">Make a Donation</h2>
-              
-              <form onSubmit={handleSubmit}>
-                {/* Donation Type */}
-                <div className="mb-6">
-                  <label className="block text-gray-700 font-semibold mb-3">Donation Type</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {['one-time', 'monthly', 'yearly'].map((type) => (
-                      <button
-                        key={type}
-                        type="button"
-                        onClick={() => setDonationType(type)}
-                        className={`py-2 px-3 rounded-lg border-2 transition-all duration-300 text-sm ${
-                          donationType === type
-                            ? 'border-orange-300 bg-orange-300 text-white font-semibold'
-                            : 'border-gray-300 text-gray-600 hover:border-orange-300'
-                        }`}
-                      >
-                        {type === 'one-time' ? 'One-time' : type === 'monthly' ? 'Monthly' : 'Yearly'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Amount Selection */}
-                <div className="mb-6">
-                  <label className="block text-gray-700 font-semibold mb-3">Select Amount (USD)</label>
-                  <div className="grid grid-cols-3 gap-3 mb-3">
-                    {quickAmounts.map((amount) => (
-                      <button
-                        key={amount}
-                        type="button"
-                        onClick={() => handleAmountSelect(amount.toString())}
-                        className={`py-3 rounded-lg border-2 transition-all duration-300 ${
-                          selectedAmount === amount.toString()
-                            ? 'border-orange-500 bg-orange-500 text-white font-semibold'
-                            : 'border-gray-300 text-gray-700 hover:border-orange-300 hover:bg-orange-50'
-                        }`}
-                      >
-                        ${amount}
-                      </button>
-                    ))}
+          <div className="grid lg:grid-cols-5 gap-8">
+            {/* Donation form */}
+            <form onSubmit={handleContinue} className="lg:col-span-3 bg-white rounded-2xl shadow-xl p-6 md:p-8 space-y-7">
+              {/* Method */}
+              <div>
+                <label className="block text-gray-800 font-semibold mb-3">How would you like to give?</label>
+                <div className={`grid gap-3 ${availableMethods.length > 1 ? 'sm:grid-cols-3' : ''}`}>
+                  {availableMethods.map(({ id, label, hint, icon: Icon }) => (
                     <button
+                      key={id}
                       type="button"
-                      onClick={() => handleAmountSelect('other')}
-                      className={`py-3 rounded-lg border-2 transition-all duration-300 col-span-3 ${
-                        selectedAmount === 'other'
-                          ? 'border-orange-500 bg-orange-500 text-white font-semibold'
-                          : 'border-gray-300 text-gray-700 hover:border-orange-300 hover:bg-orange-50'
+                      onClick={() => handleMethodChange(id)}
+                      className={`flex items-center gap-3 text-left p-4 rounded-xl border-2 transition-all ${
+                        method === id ? 'border-orange-400 bg-orange-50' : 'border-gray-200 hover:border-orange-200'
                       }`}
                     >
-                      Other Amount
+                      <Icon className={`w-6 h-6 shrink-0 ${method === id ? 'text-orange-500' : 'text-gray-400'}`} />
+                      <span>
+                        <span className="block font-semibold text-gray-900">{label}</span>
+                        <span className="block text-xs text-gray-500">{hint}</span>
+                      </span>
                     </button>
-                  </div>
+                  ))}
+                </div>
+              </div>
 
-                  {(selectedAmount === 'other' || !quickAmounts.includes(parseInt(donationAmount))) && (
-                    <div className="mt-4">
-                      <input
-                        type="number"
-                        value={donationAmount}
-                        onChange={(e) => setDonationAmount(e.target.value)}
-                        placeholder="Enter custom amount"
-                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all duration-300"
-                        min="1"
-                        required
-                      />
+              {/* Amount */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-gray-800 font-semibold">Amount</label>
+                  {method !== 'momo' && (
+                    <div className="inline-flex rounded-lg bg-gray-100 p-1 text-sm">
+                      {(['RWF', 'USD'] as Currency[]).map((c) => (
+                        <button
+                          key={c}
+                          type="button"
+                          onClick={() => handleCurrencyChange(c)}
+                          className={`px-3 py-1 rounded-md font-medium transition-colors ${
+                            currency === c ? 'bg-white shadow text-gray-900' : 'text-gray-500'
+                          }`}
+                        >
+                          {c}
+                        </button>
+                      ))}
                     </div>
                   )}
                 </div>
-
-                {/* Donor Information */}
-                <div className="space-y-4 mb-6">
-                  <div>
-                    <label className="block text-gray-700 font-semibold mb-2">Full Name *</label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {PRESETS[currency].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => {
+                        setAmount(preset);
+                        setCustomAmount('');
+                      }}
+                      className={`py-3 rounded-xl border-2 font-semibold transition-all ${
+                        amount === preset && !customAmount
+                          ? 'border-orange-500 bg-orange-500 text-white'
+                          : 'border-gray-200 text-gray-700 hover:border-orange-300'
+                      }`}
+                    >
+                      {formatAmount(preset, currency)}
+                    </button>
+                  ))}
+                  <div className="relative">
                     <input
-                      type="text"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all duration-300"
-                      placeholder="Enter your full name"
-                      required
+                      type="number"
+                      inputMode="numeric"
+                      min="1"
+                      value={customAmount}
+                      onChange={(e) => setCustomAmount(e.target.value)}
+                      placeholder="Other"
+                      className={`w-full h-full py-3 pl-3 pr-12 rounded-xl border-2 font-semibold text-gray-800 outline-none transition-all ${
+                        customAmount ? 'border-orange-500' : 'border-gray-200 focus:border-orange-300'
+                      }`}
+                      aria-label="Other amount"
                     />
-                  </div>
-
-                  <div>
-                    <label className="block text-gray-700 font-semibold mb-2">Email Address *</label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all duration-300"
-                      placeholder="Enter your email"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-gray-700 font-semibold mb-2">
-                      Message (Optional)
-                    </label>
-                    <textarea
-                      name="message"
-                      value={formData.message}
-                      onChange={handleInputChange}
-                      rows={4}
-                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all duration-300 text-gray-800 bg-white"
-                      placeholder="Share a message of support..."
-                      style={{ color: '#1f2937', backgroundColor: '#ffffff' }}
-                    />
-                  </div>
-                </div>
-
-                {/* Submit Button */}
-                <button
-                  type="submit"
-                  disabled={!donationAmount || !formData.name || !formData.email}
-                  className="w-full bg-orange-500 text-white py-4 px-6 rounded-lg font-semibold text-lg hover:bg-orange-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105"
-                >
-                  Donate ${donationAmount || '0'} {donationType === 'yearly' ? 'Per Year' : donationType === 'monthly' ? 'Monthly' : 'Now'}
-                </button>
-              </form>
-            </div>
-
-            {/* Impact Information */}
-            <div className="space-y-6">
-              {/* Impact Stats */}
-              <div className="bg-gradient-to-br from-orange-200 to-orange-300 rounded-lg shadow-xl p-6 text-white hover:shadow-2xl transition-all duration-300">
-                <h3 className="text-2xl font-bold mb-4 text-gray-800">Your Impact</h3>
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-white bg-opacity-50 rounded-full flex items-center justify-center">
-                      <span className="text-lg">🎨</span>
-                    </div>
-                    <div className="text-gray-800">
-                      <p className="font-semibold">$25</p>
-                      <p className="text-sm">Provides materials for one artisan</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-white bg-opacity-50 rounded-full flex items-center justify-center">
-                      <span className="text-lg">📚</span>
-                    </div>
-                    <div className="text-gray-800">
-                      <p className="font-semibold">$50</p>
-                      <p className="text-sm">Funds a youth training session</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-white bg-opacity-50 rounded-full flex items-center justify-center">
-                      <span className="text-lg">🏠</span>
-                    </div>
-                    <div className="text-gray-800">
-                      <p className="font-semibold">$100</p>
-                      <p className="text-sm">Supports a family for a month</p>
-                    </div>
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">{currency}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Why Donate */}
-              <div className="bg-[#202f32] rounded-lg shadow-xl p-6 text-white hover:shadow-2xl transition-all duration-300">
-                <h3 className="text-2xl font-bold text-orange-300 mb-4">Why Donate?</h3>
-                <ul className="space-y-3">
-                  <li className="flex items-start space-x-3">
-                    <span className="text-orange-300 mt-1">✓</span>
-                    <span>Preserve traditional Rwandan crafts</span>
-                  </li>
-                  <li className="flex items-start space-x-3">
-                    <span className="text-orange-300 mt-1">✓</span>
-                    <span>Empower local artisans with fair income</span>
-                  </li>
-                  <li className="flex items-start space-x-3">
-                    <span className="text-orange-300 mt-1">✓</span>
-                    <span>Train youth in ancestral skills</span>
-                  </li>
-                  <li className="flex items-start space-x-3">
-                    <span className="text-orange-300 mt-1">✓</span>
-                    <span>Support sustainable community development</span>
-                  </li>
-                  <li className="flex items-start space-x-3">
-                    <span className="text-orange-300 mt-1">✓</span>
-                    <span>Keep cultural heritage alive for future generations</span>
-                  </li>
+              {/* Donor details */}
+              <div className="space-y-4">
+                <label className="block text-gray-800 font-semibold">Your details <span className="font-normal text-gray-400">(optional)</span></label>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    value={donor.name}
+                    onChange={(e) => setDonor({ ...donor, name: e.target.value })}
+                    disabled={anonymous}
+                    placeholder="Full name"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-gray-800 focus:border-orange-400 outline-none transition-all disabled:bg-gray-50 disabled:text-gray-400"
+                  />
+                  <input
+                    type="text"
+                    value={donor.contact}
+                    onChange={(e) => setDonor({ ...donor, contact: e.target.value })}
+                    placeholder="Phone or email for a receipt"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-gray-800 focus:border-orange-400 outline-none transition-all"
+                  />
+                </div>
+                <textarea
+                  value={donor.message}
+                  onChange={(e) => setDonor({ ...donor, message: e.target.value })}
+                  rows={3}
+                  placeholder="Leave a message of support"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-gray-800 bg-white focus:border-orange-400 outline-none transition-all"
+                />
+                <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={anonymous}
+                    onChange={(e) => setAnonymous(e.target.checked)}
+                    className="w-4 h-4 accent-orange-500"
+                  />
+                  Donate anonymously
+                </label>
+              </div>
+
+              <button
+                type="submit"
+                disabled={!isValidAmount}
+                className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-4 rounded-xl font-semibold text-lg transition-colors"
+              >
+                {isValidAmount ? `Donate ${formatAmount(finalAmount!, currency)}` : 'Choose an amount'}
+              </button>
+
+              {availableMethods.length === 1 && (
+                <p className="text-sm text-gray-500 text-center">
+                  Giving from abroad?{' '}
+                  <a
+                    href={`https://wa.me/${DONATION_CONFIG.whatsappNumber}?text=${encodeURIComponent('Hello IremeCorner, I would like to donate from abroad.')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-orange-600 font-medium hover:underline"
+                  >
+                    Message us on WhatsApp
+                  </a>
+                </p>
+              )}
+            </form>
+
+            {/* Impact */}
+            <aside className="lg:col-span-2 space-y-6">
+              <div className="bg-[#202f32] rounded-2xl shadow-xl p-6 text-white">
+                <HeartHandshake className="w-10 h-10 text-orange-300 mb-4" />
+                <h2 className="text-2xl font-bold text-orange-300 mb-4">Where your gift goes</h2>
+                <ul className="space-y-4">
+                  {IMPACT.map(({ icon: Icon, text }) => (
+                    <li key={text} className="flex items-center gap-3">
+                      <span className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+                        <Icon className="w-5 h-5 text-orange-300" />
+                      </span>
+                      <span>{text}</span>
+                    </li>
+                  ))}
                 </ul>
               </div>
 
-              {/* Testimonial */}
-              <div className="bg-white rounded-lg shadow-xl p-6 hover:shadow-2xl transition-all duration-300">
-                <div className="flex items-center space-x-4 mb-4">
-                  <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-                    <span className="text-orange-500 text-lg">🙏</span>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-800">Jean Paul</h4>
-                    <p className="text-sm text-gray-600">Monthly Supporter</p>
-                  </div>
-                </div>
-                <p className="text-gray-600 italic">
-                  "Knowing my donation helps preserve our Rwandan heritage while supporting talented artisans brings me joy every month. IremeCorner is doing incredible work!"
+              <div className="bg-white rounded-2xl shadow-xl p-6 space-y-3 text-gray-600">
+                <p className="flex items-start gap-3">
+                  <ShieldCheck className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
+                  You pay directly from your own Mobile Money or bank app. We never see your PIN or card details.
+                </p>
+                <p className="flex items-start gap-3">
+                  <MessageCircle className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
+                  Every donation gets a reference so we can confirm it and thank you personally.
                 </p>
               </div>
-            </div>
+            </aside>
           </div>
 
-          {/* Additional Info Section */}
-          <section className="mt-16 text-center">
-            <div className="bg-gradient-to-br from-[#202f32] to-gray-800 rounded-lg shadow-xl p-8 text-white hover:shadow-2xl transition-all duration-300">
-              <h2 className="text-2xl font-bold mb-4">Other Ways to Support</h2>
+          {/* Other ways to support */}
+          <section className="mt-16">
+            <div className="bg-[#202f32] rounded-2xl shadow-xl p-8 text-white text-center">
+              <h2 className="text-2xl font-bold mb-8">Other Ways to Support</h2>
               <div className="grid md:grid-cols-3 gap-6">
-                <div className="p-4">
-                  <div className="w-16 h-16 bg-orange-300 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-white text-2xl">🛍️</span>
-                  </div>
-                  <h3 className="font-semibold mb-2">Shop Our Crafts</h3>
-                  <p className="text-sm opacity-90">Purchase authentic handmade products directly from our artisans</p>
-                </div>
-                <div className="p-4">
-                  <div className="w-16 h-16 bg-orange-300 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-white text-2xl">📢</span>
-                  </div>
-                  <h3 className="font-semibold mb-2">Spread the Word</h3>
-                  <p className="text-sm opacity-90">Share our mission with friends and on social media</p>
-                </div>
-                <div className="p-4">
-                  <div className="w-16 h-16 bg-orange-300 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-white text-2xl">🤝</span>
-                  </div>
-                  <h3 className="font-semibold mb-2">Become a Partner</h3>
-                  <p className="text-sm opacity-90">Explore corporate partnerships and collaborations</p>
-                </div>
+                {[
+                  { icon: ShoppingBag, title: 'Shop our crafts', text: 'Buy authentic handmade products directly from our artisans', href: '/shop' },
+                  { icon: Share2, title: 'Spread the word', text: 'Share our mission with friends and on social media', href: null },
+                  { icon: Handshake, title: 'Become a partner', text: 'Explore partnerships and collaborations with us', href: '/contact' },
+                ].map(({ icon: Icon, title, text, href }) => {
+                  const content = (
+                    <>
+                      <span className="w-14 h-14 bg-orange-300 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Icon className="w-7 h-7 text-[#202f32]" />
+                      </span>
+                      <h3 className="font-semibold mb-2">{title}</h3>
+                      <p className="text-sm text-gray-300">{text}</p>
+                    </>
+                  );
+                  return href ? (
+                    <a key={title} href={href} className="p-4 rounded-xl hover:bg-white/5 transition-colors">
+                      {content}
+                    </a>
+                  ) : (
+                    <div key={title} className="p-4">{content}</div>
+                  );
+                })}
               </div>
             </div>
           </section>
