@@ -1,89 +1,44 @@
 import express from 'express';
-const router = express.Router();
+import { AppDataSource } from '../../config/database.js';
+import { Category, CategoryType } from '../../entities/products/Category.js';
+import { asyncHandler } from '../../middleware/error/errorHandler.js';
+import { validateUUID } from '../../middleware/validation/validation.js';
 
-// Hardcoded categories (use these UUIDs that match your database)
-const CATEGORIES = [
-  {
-    id: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-    name: "Basket",
-    description: "Handmade baskets",
-    type: "product",
-    isActive: true,
-    createdAt: "2025-12-04T12:39:23.975Z",
-    updatedAt: "2025-12-04T12:39:23.975Z"
-  },
-  {
-    id: "550e8400-e29b-41d4-a716-446655440002",
-    name: "Wall Arts",
-    description: "Decorative wall arts",
-    type: "product",
-    isActive: true,
-    createdAt: "2025-12-04T12:39:23.975Z",
-    updatedAt: "2025-12-04T12:39:23.975Z"
-  },
-  {
-    id: "550e8400-e29b-41d4-a716-446655440003",
-    name: "Pottery",
-    description: "Clay pottery items",
-    type: "product",
-    isActive: true,
-    createdAt: "2025-12-04T12:39:23.975Z",
-    updatedAt: "2025-12-04T12:39:23.975Z"
-  },
-  {
-    id: "550e8400-e29b-41d4-a716-446655440004",
-    name: "Others",
-    description: "Other artisan products",
-    type: "product",
-    isActive: true,
-    createdAt: "2025-12-04T12:39:23.975Z",
-    updatedAt: "2025-12-04T12:39:23.975Z"
-  }
-];
+const router = express.Router();
+const categoryRepository = () => AppDataSource.getRepository(Category);
 
 // @route   GET /api/categories
-// @desc    Get all categories
+// @desc    Get all active product categories
 // @access  Public
-router.get('/', (req, res) => {
-  try {
-    res.json({
-      success: true,
-      data: CATEGORIES
-    });
-  } catch (error) {
-    console.error('Error fetching categories:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error'
-    });
-  }
-});
+router.get('/', asyncHandler(async (req, res) => {
+  const categories = await categoryRepository().find({
+    where: { type: CategoryType.PRODUCT, isActive: true },
+    order: { sortOrder: 'ASC', name: 'ASC' }
+  });
+
+  res.json({
+    success: true,
+    data: categories
+  });
+}));
 
 // @route   GET /api/categories/:id
 // @desc    Get single category
 // @access  Public
-router.get('/:id', (req, res) => {
-  try {
-    const category = CATEGORIES.find(cat => cat.id === req.params.id);
-    
-    if (!category) {
-      return res.status(404).json({
-        success: false,
-        message: 'Category not found'
-      });
-    }
-    
-    res.json({
-      success: true,
-      data: category
-    });
-  } catch (error) {
-    console.error('Error fetching category:', error);
-    res.status(500).json({
+router.get('/:id', validateUUID, asyncHandler(async (req, res) => {
+  const category = await categoryRepository().findOne({ where: { id: req.params.id } });
+
+  if (!category) {
+    return res.status(404).json({
       success: false,
-      message: 'Server error'
+      message: 'Category not found'
     });
   }
-});
+
+  res.json({
+    success: true,
+    data: category
+  });
+}));
 
 export default router;

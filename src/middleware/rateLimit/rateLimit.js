@@ -72,3 +72,15 @@ export const paymentLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+
+// Rate limiter for the public contact form
+export const contactLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5, // 5 messages per hour
+  message: {
+    success: false,
+    message: 'Too many messages sent, please try again later or reach us on WhatsApp.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});

@@ -15,9 +15,7 @@ export class ProductController {
       productData.mainImage = `uploads/products/${req.files[0].filename}`;
       
       // All images go into images array
-      if (req.files.length > 1) {
-        productData.images = req.files.map(file => `uploads/products/${file.filename}`);
-      }
+      productData.images = req.files.map(file => `uploads/products/${file.filename}`);
     }
 
     const product = await this.productService.createProduct(productData, req.user.id);
@@ -31,6 +29,16 @@ export class ProductController {
 
   getProducts = asyncHandler(async (req, res) => {
     const result = await this.productService.getProducts(req.query);
+
+    res.json({
+      success: true,
+      data: result
+    });
+  });
+
+  getAllProductsForAdmin = asyncHandler(async (req, res) => {
+    // An empty status disables the "active only" default used by the public shop
+    const result = await this.productService.getProducts({ ...req.query, status: req.query.status || '' });
 
     res.json({
       success: true,
@@ -52,10 +60,9 @@ export class ProductController {
 
     // Handle uploaded images on update too
     if (req.files && req.files.length > 0) {
+      // New uploads replace the whole set so old photos don't linger
       updateData.mainImage = `uploads/products/${req.files[0].filename}`;
-      if (req.files.length > 1) {
-        updateData.images = req.files.map(file => `uploads/products/${file.filename}`);
-      }
+      updateData.images = req.files.map(file => `uploads/products/${file.filename}`);
     }
 
     const product = await this.productService.updateProduct(

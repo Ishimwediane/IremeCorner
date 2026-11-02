@@ -14,9 +14,12 @@ export class ProductService {
   async createProduct(productData, artisanId) {
     const { categoryId, ...productInfo } = productData;
 
-    // Verify artisan exists
-    const artisan = await this.userRepository.findOne({ 
-      where: { id: artisanId, role: 'artisan' } 
+    // Verify the owner exists (an artisan, or the admin managing the store)
+    const artisan = await this.userRepository.findOne({
+      where: [
+        { id: artisanId, role: 'artisan' },
+        { id: artisanId, role: 'admin' }
+      ]
     });
     if (!artisan) {
       throw new AppError('Artisan not found', 404);
@@ -155,6 +158,17 @@ export class ProductService {
         product[field] = updateData[field];
       }
     });
+
+    if (updateData.categoryId && updateData.categoryId !== product.categoryId) {
+      const category = await this.categoryRepository.findOne({
+        where: { id: updateData.categoryId, type: 'product' }
+      });
+      if (!category) {
+        throw new AppError('Category not found', 404);
+      }
+      product.categoryId = updateData.categoryId;
+      product.category = category;
+    }
 
     return await this.productRepository.save(product);
   }

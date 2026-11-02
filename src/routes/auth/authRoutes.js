@@ -12,8 +12,10 @@ import {
 const router = express.Router();
 const authController = new AuthController();
 
+// Accounts are created by the IremeCorner admin; there is no public sign-up
+router.post('/register', authenticateToken, requireRole('admin'), validateUserRegistration, authController.register);
+
 // Public routes
-router.post('/register', authLimiter, validateUserRegistration, authController.register);
 router.post('/login', authLimiter, validateUserLogin, authController.login);
 router.post('/refresh-token', authController.refreshToken);
 router.post('/reset-password', passwordResetLimiter, authController.resetPassword);

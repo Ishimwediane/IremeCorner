@@ -17,13 +17,17 @@ router.get('/', validatePagination, productController.getProducts);
 router.get('/featured', productController.getFeaturedProducts);
 router.get('/popular', productController.getPopularProducts);
 router.get('/new', productController.getNewProducts);
+
+// Admin listing: every product regardless of status (declared before /:id)
+router.get('/manage', authenticateToken, requireRole('admin'), validatePagination, productController.getAllProductsForAdmin);
+
 router.get('/:id', validateUUID, productController.getProductById);
 
 // Protected routes
 router.use(authenticateToken);
 
-// Artisan routes
-router.post('/', requireRole('artisan'), uploadProductImages, validateProductCreation, productController.createProduct);
+// Artisan and admin routes
+router.post('/', requireRole('artisan', 'admin'), uploadProductImages, validateProductCreation, productController.createProduct);
 router.put('/:id', validateUUID, uploadProductImages, validateProductUpdate, productController.updateProduct);
 router.delete('/:id', validateUUID, productController.deleteProduct);
 router.get('/artisan/:artisanId?', productController.getProductsByArtisan);

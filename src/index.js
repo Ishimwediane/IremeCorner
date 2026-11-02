@@ -18,6 +18,8 @@ import orderRoutes from './routes/orders/orderRoutes.js';
 import courseRoutes from './routes/courses/courseRoutes.js';
 import paymentRoutes from './routes/payments/paymentRoutes.js';
 import categoryRoutes from './routes/categories/categoryRoutes.js';
+import contactRoutes from './routes/contact/contactRoutes.js';
+import adminRoutes from './routes/admin/adminRoutes.js';
 
 const app = express();
 
@@ -77,21 +79,8 @@ app.use('/uploads', express.static('uploads'));
   app.use('/api/courses', courseRoutes);
   app.use('/api/payments', paymentRoutes);
   app.use('/api/categories', categoryRoutes);
-
-  // Admin routes
-  app.get('/api/admin/dashboard', (req, res) => {
-    res.json({
-      success: true,
-      message: 'Admin dashboard endpoint',
-      data: {
-        totalUsers: 0,
-        totalProducts: 0,
-        totalOrders: 0,
-        totalCourses: 0,
-        totalRevenue: 0
-      }
-    });
-  });
+  app.use('/api/contact', contactRoutes);
+  app.use('/api/admin', adminRoutes);
 
   // Error handling middleware
   app.use(notFoundHandler);

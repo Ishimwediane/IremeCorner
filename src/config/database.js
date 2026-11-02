@@ -9,6 +9,7 @@ import { Course } from '../entities/courses/Course.js';
 import { Enrollment } from '../entities/courses/Enrollment.js';
 import { Payment } from '../entities/payments/Payment.js';
 import { Notification } from '../entities/notifications/Notification.js';
+import { ContactMessage } from '../entities/contact/ContactMessage.js';
 
 config();
 
@@ -30,7 +31,8 @@ export const AppDataSource = new DataSource({
     Course,
     Enrollment,
     Payment,
-    Notification
+    Notification,
+    ContactMessage
   ],
   migrations: ['src/migrations/*.js'],
   subscribers: ['src/subscribers/*.js'],

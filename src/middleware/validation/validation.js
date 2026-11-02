@@ -147,7 +147,17 @@ export const validateProductUpdate = [
     .optional()
     .isInt({ min: 0 })
     .withMessage('Stock must be a non-negative integer'),
-  
+
+  body('status')
+    .optional()
+    .isIn(['draft', 'active', 'inactive', 'out_of_stock'])
+    .withMessage('Invalid product status'),
+
+  body('categoryId')
+    .optional()
+    .isUUID()
+    .withMessage('Invalid category ID'),
+
   handleValidationErrors
 ];
 
@@ -208,6 +218,46 @@ export const validateCourseCreation = [
     .isInt({ min: 0 })
     .withMessage('Duration must be a non-negative integer'),
   
+  handleValidationErrors
+];
+
+// Contact validation rules
+export const validateContactMessage = [
+  body('name')
+    .trim()
+    .isLength({ min: 2, max: 100 })
+    .withMessage('Name must be between 2 and 100 characters'),
+
+  body('email')
+    .trim()
+    .isEmail()
+    .withMessage('Please provide a valid email address'),
+
+  body('phone')
+    .optional({ values: 'falsy' })
+    .trim()
+    .isLength({ max: 30 })
+    .withMessage('Phone number must not exceed 30 characters'),
+
+  body('subject')
+    .optional({ values: 'falsy' })
+    .trim()
+    .isLength({ max: 200 })
+    .withMessage('Subject must not exceed 200 characters'),
+
+  body('message')
+    .trim()
+    .isLength({ min: 10, max: 5000 })
+    .withMessage('Message must be between 10 and 5000 characters'),
+
+  handleValidationErrors
+];
+
+export const validateContactStatus = [
+  body('status')
+    .isIn(['new', 'read', 'replied'])
+    .withMessage('Status must be new, read or replied'),
+
   handleValidationErrors
 ];
 

@@ -8,7 +8,9 @@
     "dev": "nodemon --require @babel/register src/index.js",
     "setup": "node setup.js",
     "build": "echo 'Build completed'",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "create-admin": "babel-node src/scripts/createAdmin.js",
+    "seed:categories": "babel-node src/scripts/seedCategories.js"
   },
   "keywords": [
     "handmade-crafts",
