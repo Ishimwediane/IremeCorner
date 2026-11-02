@@ -7,6 +7,7 @@ import 'reflect-metadata';
 
 
 import { initializeDatabase } from './config/database.js';
+import { bootstrap } from './utils/bootstrap.js';
 import { configs } from './config/index.js';
 import { generalLimiter } from './middleware/rateLimit/rateLimit.js';
 import { errorHandler, notFoundHandler } from './middleware/error/errorHandler.js';
@@ -26,6 +27,7 @@ const app = express();
 const start = async () => {
   // Initialize database
   await initializeDatabase();
+  await bootstrap();
 
   // Security middleware
  app.use(helmet({

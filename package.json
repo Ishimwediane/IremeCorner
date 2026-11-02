@@ -2,12 +2,12 @@
   "name": "iremecorner-backend",
   "version": "1.0.0",
   "type": "commonjs",
-  "main": "src/index.js",
+  "main": "dist/index.js",
   "scripts": {
-    "start": "babel-node src/index.js",
+    "start": "node dist/index.js",
     "dev": "nodemon --require @babel/register src/index.js",
     "setup": "node setup.js",
-    "build": "echo 'Build completed'",
+    "build": "babel src --out-dir dist --copy-files",
     "test": "echo \"Error: no test specified\" && exit 1",
     "create-admin": "babel-node src/scripts/createAdmin.js",
     "seed:categories": "babel-node src/scripts/seedCategories.js"
@@ -41,6 +41,7 @@
     "uuid": "^9.0.1"
   },
   "devDependencies": {
+    "@babel/cli": "^7.29.7",
     "@babel/core": "^7.29.0",
     "@babel/node": "^7.29.0",
     "@babel/plugin-proposal-class-properties": "^7.18.6",
@@ -52,5 +53,8 @@
     "babel-plugin-transform-typescript-metadata": "^0.4.0",
     "nodemon": "^3.0.1",
     "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }
