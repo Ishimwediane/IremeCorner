@@ -1,6 +1,6 @@
 import { ContactMessage, ContactMessageStatus } from '../../entities/contact/ContactMessage.js';
 import { AppError } from '../../middleware/error/errorHandler.js';
-import { EmailService } from '../email/emailService.js';
+import { EmailService, describeEmailError } from '../email/emailService.js';
 
 export class ContactService {
   constructor() {
@@ -20,7 +20,8 @@ export class ContactService {
     // Email the owner without delaying the visitor; the message is already saved either way.
     this.emailService
       .sendContactNotification(contactMessage)
-      .catch((error) => console.error('Contact notification email failed:', error.message));
+      .then(() => console.log(`✉ Contact email sent for message ${contactMessage.id}`))
+      .catch((error) => console.error(`❌ Contact email failed for message ${contactMessage.id}: ${describeEmailError(error)}`));
 
     return contactMessage;
   }

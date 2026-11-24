@@ -3,6 +3,7 @@ import path from 'path';
 import { User, UserRole } from '../entities/auth/User.js';
 import { Category } from '../entities/products/Category.js';
 import { configs } from '../config/index.js';
+import { EmailService } from '../services/email/emailService.js';
 
 export const DEFAULT_CATEGORIES = [
   { _id: '3fa85f64-5717-4562-b3fc-2c963f66afa6', name: 'Basket', description: 'Handmade baskets' },
@@ -69,4 +70,7 @@ export async function bootstrap() {
   if (admin.created) {
     console.log(`✓ Admin account created for ${configs.admin.email}`);
   }
+
+  // Not awaited: a slow mail server must not delay startup.
+  new EmailService().logStatus();
 }

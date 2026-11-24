@@ -1,3 +1,4 @@
+import dns from 'dns/promises';
 import nodemailer from 'nodemailer';
 import { configs } from '../../config/index.js';
 
@@ -8,6 +9,18 @@ const escapeHtml = (value = '') =>
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+
+// Turns a send failure into one log line with the server's reply and a hint on how to fix it.
+export const describeEmailError = (error) => {
+  const reply = (error.response || error.message || '').split('\n')[0];
+  let hint = '';
+  if (error.code === 'EAUTH' || error.responseCode === 535) {
+    hint = 'Gmail rejected the login: check EMAIL_USER and use a Google app password (not your normal password) in EMAIL_PASS.';
+  } else if (['ETIMEDOUT', 'ECONNECTION', 'ESOCKET', 'ECONNREFUSED'].includes(error.code)) {
+    hint = 'Could not reach the mail server. Render\'s free plan blocks SMTP; use RESEND_API_KEY there instead.';
+  }
+  return [error.code, reply, hint].filter(Boolean).join(' | ');
+};
 
 // Sends email through Resend (HTTPS, works on Render's free plan, which blocks SMTP)
 // when RESEND_API_KEY is set, otherwise through SMTP (EMAIL_HOST/EMAIL_USER/EMAIL_PASS).
@@ -32,13 +45,47 @@ export class EmailService {
       return;
     }
 
-    const transporter = nodemailer.createTransport({
-      host: configs.email.host,
+    await (await this.createSmtpTransport()).sendMail({ from: configs.email.from, to, subject, html, text, replyTo });
+  }
+
+  async createSmtpTransport() {
+    // Connect over IPv4: hosts such as Render have no IPv6 route, and Gmail's IPv6 address fails with ENETUNREACH.
+    const { address } = await dns.lookup(configs.email.host, { family: 4 });
+    return nodemailer.createTransport({
+      host: address,
+      tls: { servername: configs.email.host },
       port: configs.email.port,
       secure: configs.email.port === 465,
-      auth: { user: configs.email.user, pass: configs.email.pass },
+      // Google shows app passwords in groups of four; the spaces are not part of the password.
+      auth: { user: configs.email.user, pass: configs.email.pass.replace(/\s/g, '') },
+      connectionTimeout: 15000,
     });
-    await transporter.sendMail({ from: configs.email.from, to, subject, html, text, replyTo });
+  }
+
+  // Logs whether contact emails can be sent, so problems show up in the server logs at startup.
+  async logStatus() {
+    const { contactNotifyEmail, resendApiKey, user, host, port } = configs.email;
+
+    if (!contactNotifyEmail) {
+      console.log('✉ Contact emails off: CONTACT_NOTIFY_EMAIL is not set');
+      return;
+    }
+    if (!this.isConfigured) {
+      console.log('✉ Contact emails off: set RESEND_API_KEY, or EMAIL_USER and EMAIL_PASS for SMTP');
+      return;
+    }
+    if (resendApiKey) {
+      console.log(`✉ Contact emails go to ${contactNotifyEmail} through Resend`);
+      return;
+    }
+
+    try {
+      await (await this.createSmtpTransport()).verify();
+      console.log(`✓ Contact emails go to ${contactNotifyEmail} through SMTP (${user} on ${host}:${port})`);
+    } catch (error) {
+      console.error(`❌ Contact emails cannot be sent: SMTP login to ${host}:${port} as ${user} failed`);
+      console.error(`   ${describeEmailError(error)}`);
+    }
   }
 
   async sendContactNotification(contact) {
