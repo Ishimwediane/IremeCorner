@@ -1,181 +1,84 @@
 import nodemailer from 'nodemailer';
 import { configs } from '../../config/index.js';
 
+const escapeHtml = (value = '') =>
+  String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+// Sends email through Resend (HTTPS, works on Render's free plan, which blocks SMTP)
+// when RESEND_API_KEY is set, otherwise through SMTP (EMAIL_HOST/EMAIL_USER/EMAIL_PASS).
 export class EmailService {
-  constructor() {
-    this.transporter = nodemailer.createTransporter({
+  get isConfigured() {
+    const { resendApiKey, user, pass } = configs.email;
+    return Boolean(resendApiKey || (user && pass));
+  }
+
+  async sendEmail({ to, subject, html, text, replyTo }) {
+    const { resendApiKey } = configs.email;
+
+    if (resendApiKey) {
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from: configs.email.resendFrom, to: [to], subject, html, text, reply_to: replyTo }),
+      });
+      if (!response.ok) {
+        throw new Error(`Resend returned ${response.status}: ${await response.text()}`);
+      }
+      return;
+    }
+
+    const transporter = nodemailer.createTransport({
       host: configs.email.host,
       port: configs.email.port,
-      secure: false, // true for 465, false for other ports
-      auth: {
-        user: configs.email.user,
-        pass: configs.email.pass,
-      },
+      secure: configs.email.port === 465,
+      auth: { user: configs.email.user, pass: configs.email.pass },
     });
+    await transporter.sendMail({ from: configs.email.from, to, subject, html, text, replyTo });
   }
 
-  async sendEmail(to, subject, html, text = null) {
-    try {
-      const mailOptions = {
-        from: configs.email.from,
-        to,
-        subject,
-        html,
-        text: text || this.stripHtml(html),
-      };
+  async sendContactNotification(contact) {
+    const to = configs.email.contactNotifyEmail;
+    if (!to || !this.isConfigured) return;
 
-      const result = await this.transporter.sendMail(mailOptions);
-      console.log('Email sent successfully:', result.messageId);
-      return result;
-    } catch (error) {
-      console.error('Email sending failed:', error);
-      throw error;
-    }
-  }
+    const rows = [
+      ['Name', contact.name],
+      ['Email', contact.email],
+      ['Phone', contact.phone],
+      ['Subject', contact.subject],
+    ].filter(([, value]) => value);
 
-  async sendWelcomeEmail(userEmail, userName) {
-    const subject = 'Welcome to IremeCorner!';
     const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #333;">Welcome to IremeCorner!</h2>
-        <p>Dear ${userName},</p>
-        <p>Thank you for joining IremeCorner! We're excited to have you as part of our community of artisans and craft enthusiasts.</p>
-        <p>You can now:</p>
-        <ul>
-          <li>Browse and purchase handmade crafts</li>
-          <li>Connect with talented artisans</li>
-          <li>Share your own creations (if you're an artisan)</li>
-        </ul>
-        <p>If you have any questions, feel free to contact our support team.</p>
-        <p>Best regards,<br>The IremeCorner Team</p>
-      </div>
-    `;
-
-    return await this.sendEmail(userEmail, subject, html);
-  }
-
-  async sendOrderConfirmationEmail(userEmail, userName, order) {
-    const subject = `Order Confirmation - ${order.orderNumber}`;
-    const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #333;">Order Confirmation</h2>
-        <p>Dear ${userName},</p>
-        <p>Thank you for your order! We've received your order and it's being processed.</p>
-        
-        <div style="background-color: #f5f5f5; padding: 20px; margin: 20px 0;">
-          <h3>Order Details</h3>
-          <p><strong>Order Number:</strong> ${order.orderNumber}</p>
-          <p><strong>Order Date:</strong> ${new Date(order.createdAt).toLocaleDateString()}</p>
-          <p><strong>Total Amount:</strong> $${order.totalAmount}</p>
-          <p><strong>Status:</strong> ${order.status}</p>
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #202F32;">
+        <div style="background: #202F32; color: #EAB86A; padding: 16px 24px; font-size: 18px; font-weight: bold;">
+          New message from the IremeCorner website
         </div>
-
-        <div style="background-color: #f5f5f5; padding: 20px; margin: 20px 0;">
-          <h3>Shipping Address</h3>
-          <p>${order.shippingAddress}</p>
+        <div style="padding: 24px; border: 1px solid #e5e7eb;">
+          <table style="border-collapse: collapse; margin-bottom: 16px;">
+            ${rows
+              .map(
+                ([label, value]) =>
+                  `<tr><td style="padding: 4px 16px 4px 0; color: #6b7280;">${label}</td><td style="padding: 4px 0;">${escapeHtml(value)}</td></tr>`
+              )
+              .join('')}
+          </table>
+          <div style="white-space: pre-wrap; background: #f9fafb; padding: 16px; border-left: 4px solid #EAB86A;">${escapeHtml(contact.message)}</div>
+          <p style="color: #6b7280; font-size: 13px; margin-top: 16px;">Reply to this email to answer ${escapeHtml(contact.name)} directly.</p>
         </div>
-
-        <p>We'll send you another email when your order ships.</p>
-        <p>Best regards,<br>The IremeCorner Team</p>
       </div>
     `;
+    const text = [...rows.map(([label, value]) => `${label}: ${value}`), '', contact.message].join('\n');
 
-    return await this.sendEmail(userEmail, subject, html);
-  }
-
-  async sendOrderShippedEmail(userEmail, userName, order) {
-    const subject = `Your Order Has Shipped - ${order.orderNumber}`;
-    const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #333;">Your Order Has Shipped!</h2>
-        <p>Dear ${userName},</p>
-        <p>Great news! Your order has been shipped and is on its way to you.</p>
-        
-        <div style="background-color: #f5f5f5; padding: 20px; margin: 20px 0;">
-          <h3>Shipping Details</h3>
-          <p><strong>Order Number:</strong> ${order.orderNumber}</p>
-          <p><strong>Tracking Number:</strong> ${order.trackingNumber || 'Not available'}</p>
-          <p><strong>Shipped Date:</strong> ${new Date(order.shippedAt).toLocaleDateString()}</p>
-        </div>
-
-        <p>You can track your package using the tracking number above.</p>
-        <p>Best regards,<br>The IremeCorner Team</p>
-      </div>
-    `;
-
-    return await this.sendEmail(userEmail, subject, html);
-  }
-
-  async sendPasswordResetEmail(userEmail, resetToken) {
-    const subject = 'Password Reset Request';
-    const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
-    const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #333;">Password Reset Request</h2>
-        <p>You requested to reset your password for your IremeCorner account.</p>
-        <p>Click the button below to reset your password:</p>
-        
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${resetUrl}" style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">Reset Password</a>
-        </div>
-
-        <p>If the button doesn't work, copy and paste this link into your browser:</p>
-        <p style="word-break: break-all; color: #007bff;">${resetUrl}</p>
-        
-        <p><strong>This link will expire in 1 hour.</strong></p>
-        <p>If you didn't request this password reset, please ignore this email.</p>
-        <p>Best regards,<br>The IremeCorner Team</p>
-      </div>
-    `;
-
-    return await this.sendEmail(userEmail, subject, html);
-  }
-
-  async sendEmailVerificationEmail(userEmail, userName, verificationToken) {
-    const subject = 'Verify Your Email Address';
-    const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
-    const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #333;">Verify Your Email Address</h2>
-        <p>Dear ${userName},</p>
-        <p>Thank you for signing up! Please verify your email address to complete your registration.</p>
-        
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${verificationUrl}" style="background-color: #28a745; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">Verify Email</a>
-        </div>
-
-        <p>If the button doesn't work, copy and paste this link into your browser:</p>
-        <p style="word-break: break-all; color: #28a745;">${verificationUrl}</p>
-        
-        <p>Best regards,<br>The IremeCorner Team</p>
-      </div>
-    `;
-
-    return await this.sendEmail(userEmail, subject, html);
-  }
-
-  async sendNotificationEmail(userEmail, userName, notification) {
-    const subject = notification.title;
-    const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #333;">${notification.title}</h2>
-        <p>Dear ${userName},</p>
-        <p>${notification.message}</p>
-        
-        ${notification.actionUrl ? `
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${notification.actionUrl}" style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">View Details</a>
-          </div>
-        ` : ''}
-
-        <p>Best regards,<br>The IremeCorner Team</p>
-      </div>
-    `;
-
-    return await this.sendEmail(userEmail, subject, html);
-  }
-
-  stripHtml(html) {
-    return html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+    await this.sendEmail({
+      to,
+      subject: `New website message: ${contact.subject || contact.name}`,
+      html,
+      text,
+      replyTo: contact.email,
+    });
   }
 }

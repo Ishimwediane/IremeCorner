@@ -27,6 +27,11 @@ export const configs = {
     user: process.env.EMAIL_USER || '',
     pass: process.env.EMAIL_PASS || '',
     from: process.env.EMAIL_FROM || 'noreply@iremecorner.com',
+    resendApiKey: process.env.RESEND_API_KEY || '',
+    // Resend only sends from verified domains; onboarding@resend.dev works without one.
+    resendFrom: process.env.RESEND_FROM || 'IremeCorner <onboarding@resend.dev>',
+    // Inbox that receives a copy of every contact form message.
+    contactNotifyEmail: process.env.CONTACT_NOTIFY_EMAIL || '',
   },
   
   // File Upload Configuration

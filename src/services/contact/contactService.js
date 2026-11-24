@@ -1,9 +1,14 @@
 import { ContactMessage, ContactMessageStatus } from '../../entities/contact/ContactMessage.js';
 import { AppError } from '../../middleware/error/errorHandler.js';
+import { EmailService } from '../email/emailService.js';
 
 export class ContactService {
+  constructor() {
+    this.emailService = new EmailService();
+  }
+
   async createMessage({ name, email, phone, subject, message }) {
-    return await ContactMessage.create({
+    const contactMessage = await ContactMessage.create({
       name,
       email,
       phone: phone || null,
@@ -11,6 +16,13 @@ export class ContactService {
       message,
       status: ContactMessageStatus.NEW
     });
+
+    // Email the owner without delaying the visitor; the message is already saved either way.
+    this.emailService
+      .sendContactNotification(contactMessage)
+      .catch((error) => console.error('Contact notification email failed:', error.message));
+
+    return contactMessage;
   }
 
   async getMessages(filters = {}) {
